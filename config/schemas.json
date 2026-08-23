@@ -1,0 +1,547 @@
+{
+  "schemas": {
+    "FTR": {
+      "description": "Foreign Trade Request - Master document que rastreia cada operação",
+      "properties": {
+        "ftr_code": {
+          "type": "string",
+          "pattern": "^\\d{5}-\\d{2}(-\\d)?$",
+          "description": "Ex: 03075-26, 03075-26-1 (sufixo para amended)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Em análise", "Em correção", "Em revisão de correção", "Aprovação", "Final"],
+          "description": "Státus workflow"
+        },
+        "seller": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "cnpj": { "type": "string" },
+            "contact": { "type": "string" },
+            "email": { "type": "string" }
+          },
+          "required": ["name", "cnpj"],
+          "description": "Exportador/Fornecedor"
+        },
+        "buyer": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "country": { "type": "string" },
+            "contact": { "type": "string" },
+            "email": { "type": "string" },
+            "credit_limit_usd": { "type": "number" },
+            "payment_terms": { "type": "string" }
+          },
+          "required": ["name", "country"],
+          "description": "Comprador final"
+        },
+        "product": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["Peanuts", "Grains", "Sugar"] },
+            "origin": { "type": "string", "default": "Brazil" },
+            "grade": { "type": "string", "description": "40/50, 38/42, etc" },
+            "hs_code": { "type": "string" },
+            "packaging": { "type": "string", "enum": ["25kg bags", "1250kg big bags", "Bulk"] }
+          },
+          "required": ["type", "grade"]
+        },
+        "quantity": {
+          "type": "object",
+          "properties": {
+            "mt": { "type": "number", "description": "Metric tons" },
+            "containers_40ft": { "type": "number" },
+            "container_weight_mt": { "type": "number", "description": "25-27.5 típico" }
+          },
+          "required": ["mt"]
+        },
+        "pricing": {
+          "type": "object",
+          "properties": {
+            "unit_price_usd_per_mt": { "type": "number" },
+            "incoterm": { "type": "string", "enum": ["FOB Santos", "CFR", "CIF"] },
+            "payment_terms": { "type": "string", "description": "15% adv + 85% CAD, CAD at sight" },
+            "total_value_usd": { "type": "number" }
+          },
+          "required": ["unit_price_usd_per_mt", "incoterm"]
+        },
+        "shipment": {
+          "type": "object",
+          "properties": {
+            "loading_port": { "type": "string", "default": "Santos" },
+            "destination_port": { "type": "string" },
+            "etd_planned": { "type": "string", "format": "date" },
+            "eta_expected": { "type": "string", "format": "date" },
+            "insp_date_planned": { "type": "string", "format": "date" }
+          }
+        },
+        "intermediary": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "role": { "type": "string", "enum": ["Agent", "Broker", "Cobroker"] },
+            "commission_usd_per_mt": { "type": "number" }
+          },
+          "description": "Se houver intermediário (EXXTRADE, CAMAP, etc)"
+        },
+        "documents_required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["BL", "CO", "Phyto", "Fumigation", "Analysis", "Quality", "Invoice"],
+          "description": "Documentação esperada"
+        },
+        "compliance": {
+          "type": "object",
+          "properties": {
+            "market": { "type": "string", "enum": ["Egypt", "Algeria", "Russia", "Ukraine", "Poland", "South Africa", "Tunisia"] },
+            "aflatoxin_limit_ppb": { "type": "number", "description": "5/10 Russia, 2/4 EU" },
+            "acid_or_import_permit_required": { "type": "boolean" },
+            "free_time_days": { "type": "number", "default": 14 }
+          },
+          "required": ["market"]
+        },
+        "payment": {
+          "type": "object",
+          "properties": {
+            "swift_reference": { "type": "string" },
+            "swift_confirmed_date": { "type": "string", "format": "date" },
+            "bank_credit_confirmed": { "type": "boolean" },
+            "original_documents_released": { "type": "boolean" }
+          }
+        },
+        "commission": {
+          "type": "object",
+          "properties": {
+            "commission_usd_or_pct": { "type": "string" },
+            "invoice_generated": { "type": "boolean" },
+            "paid_date": { "type": "string", "format": "date" }
+          }
+        },
+        "created_date": { "type": "string", "format": "date-time" },
+        "updated_date": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["ftr_code", "seller", "buyer", "product", "quantity", "pricing", "compliance"],
+      "example": {
+        "ftr_code": "03075-26",
+        "status": "Em análise",
+        "seller": {
+          "name": "Teknofert",
+          "cnpj": "12.345.678/0001-90",
+          "contact": "João Silva",
+          "email": "joao@teknofert.com.br"
+        },
+        "buyer": {
+          "name": "SARL Tassali",
+          "country": "Algeria",
+          "contact": "Ahmed Ben",
+          "email": "ahmed@tassali.dz",
+          "credit_limit_usd": 500000,
+          "payment_terms": "CAD at sight"
+        },
+        "product": {
+          "type": "Peanuts",
+          "origin": "Brazil",
+          "grade": "38/42",
+          "hs_code": "1202.41.90",
+          "packaging": "25kg bags"
+        },
+        "quantity": {
+          "mt": 600,
+          "containers_40ft": 24,
+          "container_weight_mt": 25
+        },
+        "pricing": {
+          "unit_price_usd_per_mt": 1250,
+          "incoterm": "CFR",
+          "payment_terms": "15% adv + 85% CAD at sight",
+          "total_value_usd": 750000
+        },
+        "shipment": {
+          "loading_port": "Santos",
+          "destination_port": "Algiers",
+          "etd_planned": "2026-08-25",
+          "eta_expected": "2026-09-20"
+        },
+        "compliance": {
+          "market": "Algeria",
+          "aflatoxin_limit_ppb": 5,
+          "acid_or_import_permit_required": true,
+          "free_time_days": 14
+        },
+        "created_date": "2026-08-15T10:30:00Z",
+        "updated_date": "2026-08-15T10:30:00Z",
+        "created_by": "rodrigo@francfort.co"
+      }
+    },
+
+    "Booking": {
+      "description": "Reserva de espaço em navio/contêiner - derivada de FTR aprovada",
+      "properties": {
+        "booking_id": {
+          "type": "string",
+          "pattern": "^BK-[0-9]{6}-[0-9]{2}$",
+          "description": "Ex: BK-000001-26"
+        },
+        "ftr_code": { "type": "string", "description": "Referência ao FTR pai" },
+        "shipment_date_etd": { "type": "string", "format": "date" },
+        "container_count": { "type": "number" },
+        "container_numbers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Preenchidos após booking confirmado"
+        },
+        "vessel": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "carrier": { "type": "string", "enum": ["Maersk", "CMA CGM", "Hapag-Lloyd", "MSC", "Evergreen"] },
+            "voyage_number": { "type": "string" },
+            "etd": { "type": "string", "format": "date" },
+            "eta": { "type": "string", "format": "date" }
+          }
+        },
+        "destination_port": { "type": "string" },
+        "freight_rate_usd": { "type": "number" },
+        "freight_confirmed": { "type": "boolean" },
+        "booking_status": {
+          "type": "string",
+          "enum": ["Quoted", "Confirmed", "Shipped", "Cancelled"],
+          "description": "Status do booking com armador"
+        },
+        "created_date": { "type": "string", "format": "date-time" },
+        "updated_date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["booking_id", "ftr_code", "shipment_date_etd", "container_count"],
+      "example": {
+        "booking_id": "BK-000001-26",
+        "ftr_code": "03075-26",
+        "shipment_date_etd": "2026-08-25",
+        "container_count": 24,
+        "container_numbers": ["MAEU1234567", "MAEU1234568"],
+        "vessel": {
+          "name": "Seatrade Reefer",
+          "carrier": "Maersk",
+          "voyage_number": "2026-345",
+          "etd": "2026-08-25",
+          "eta": "2026-09-20"
+        },
+        "destination_port": "Algiers",
+        "freight_rate_usd": 1500,
+        "freight_confirmed": true,
+        "booking_status": "Confirmed"
+      }
+    },
+
+    "Invoice": {
+      "description": "Fatura comercial - emitida por exportador/intermediário",
+      "properties": {
+        "invoice_number": { "type": "string", "description": "Invoice # único por FTR" },
+        "ftr_code": { "type": "string" },
+        "booking_id": { "type": "string" },
+        "invoice_date": { "type": "string", "format": "date" },
+        "issuer": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "cnpj": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "buyer": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "country": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "line_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "quantity_mt": { "type": "number" },
+              "unit_price_usd": { "type": "number" },
+              "total_usd": { "type": "number" },
+              "hs_code": { "type": "string" }
+            }
+          }
+        },
+        "total_amount_usd": { "type": "number" },
+        "payment_terms": { "type": "string" },
+        "bank_details": {
+          "type": "object",
+          "properties": {
+            "bank_account_number": { "type": "string", "description": "RUSSIA: account ONLY, no bank name" },
+            "swift_code": { "type": "string" },
+            "beneficiary": { "type": "string" }
+          }
+        },
+        "special_instructions": { "type": "string" },
+        "invoice_status": {
+          "type": "string",
+          "enum": ["Draft", "Issued", "Paid", "Disputed"],
+          "description": "Workflow status"
+        },
+        "created_date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["invoice_number", "ftr_code", "invoice_date", "issuer", "buyer", "total_amount_usd"],
+      "example": {
+        "invoice_number": "INV-03075-001",
+        "ftr_code": "03075-26",
+        "booking_id": "BK-000001-26",
+        "invoice_date": "2026-08-20",
+        "issuer": {
+          "name": "Teknofert",
+          "cnpj": "12.345.678/0001-90",
+          "address": "São Paulo, SP"
+        },
+        "buyer": {
+          "name": "SARL Tassali",
+          "country": "Algeria",
+          "address": "Algiers, Algeria"
+        },
+        "line_items": [
+          {
+            "description": "Peanuts 38/42, 25kg bags",
+            "quantity_mt": 600,
+            "unit_price_usd": 1250,
+            "total_usd": 750000,
+            "hs_code": "1202.41.90"
+          }
+        ],
+        "total_amount_usd": 750000,
+        "payment_terms": "CAD at sight",
+        "bank_details": {
+          "bank_account_number": "1234567890-9",
+          "swift_code": "ITAUBRSP",
+          "beneficiary": "Teknofert LTDA"
+        }
+      }
+    },
+
+    "BL_Document": {
+      "description": "Bill of Lading - documento de transporte",
+      "properties": {
+        "bl_number": { "type": "string", "description": "Master BL ou House BL" },
+        "bl_type": { "type": "string", "enum": ["Master", "House"] },
+        "ftr_code": { "type": "string" },
+        "booking_id": { "type": "string" },
+        "container_numbers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array de contêineres neste BL"
+        },
+        "shipper": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "consignee": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "notify_party": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "vessel": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "voyage": { "type": "string" }
+          }
+        },
+        "port_of_loading": { "type": "string" },
+        "port_of_discharge": { "type": "string" },
+        "freight_prepaid": { "type": "boolean" },
+        "freight_collect": { "type": "boolean" },
+        "weight_kg": { "type": "number" },
+        "volume_cbm": { "type": "number" },
+        "marks_and_numbers": { "type": "string" },
+        "description_goods": { "type": "string" },
+        "bl_date": { "type": "string", "format": "date" },
+        "onboard_date": { "type": "string", "format": "date" },
+        "bl_status": {
+          "type": "string",
+          "enum": ["Draft", "Issued", "Telex Released", "Original Delivered"],
+          "description": "Status de emissão/release"
+        },
+        "created_date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bl_number", "ftr_code", "shipper", "consignee", "vessel"],
+      "example": {
+        "bl_number": "MAE12345678",
+        "bl_type": "Master",
+        "ftr_code": "03075-26",
+        "booking_id": "BK-000001-26",
+        "container_numbers": ["MAEU1234567", "MAEU1234568"],
+        "shipper": {
+          "name": "Francfort Trade",
+          "address": "Santos, SP"
+        },
+        "consignee": {
+          "name": "SARL Tassali",
+          "address": "Algiers, Algeria"
+        },
+        "notify_party": {
+          "name": "SARL Tassali",
+          "address": "Algiers, Algeria"
+        },
+        "vessel": {
+          "name": "Seatrade Reefer",
+          "voyage": "2026-345"
+        },
+        "port_of_loading": "Santos",
+        "port_of_discharge": "Algiers",
+        "freight_prepaid": true,
+        "weight_kg": 600000,
+        "description_goods": "Peanuts 38/42 Grade, 25kg bags",
+        "bl_date": "2026-08-25",
+        "onboard_date": "2026-08-25",
+        "bl_status": "Issued"
+      }
+    },
+
+    "Compliance": {
+      "description": "Registro de conformidades regulatórias por FTR",
+      "properties": {
+        "compliance_id": { "type": "string", "pattern": "^CMP-[0-9]{6}-[0-9]{2}$" },
+        "ftr_code": { "type": "string" },
+        "market": { "type": "string" },
+        "required_documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "document_type": { "type": "string", "enum": ["ACID", "Import Permit", "Phyto", "Fumigation", "Aflatoxin", "Quality", "CO"] },
+              "status": { "type": "string", "enum": ["Pending", "Obtained", "Expired", "Failed"] },
+              "expiry_date": { "type": "string", "format": "date" },
+              "issued_by": { "type": "string" },
+              "reference_number": { "type": "string" }
+            }
+          }
+        },
+        "aflatoxin": {
+          "type": "object",
+          "properties": {
+            "limit_ppb": { "type": "number", "description": "5/10 Russia, 2/4 EU" },
+            "lab_result_ppb": { "type": "number" },
+            "lab_name": { "type": "string" },
+            "test_date": { "type": "string", "format": "date" },
+            "result_status": { "type": "string", "enum": ["Pass", "Fail", "Pending"] }
+          }
+        },
+        "quality_approval": {
+          "type": "object",
+          "properties": {
+            "buyer_approved": { "type": "boolean" },
+            "approval_date": { "type": "string", "format": "date" },
+            "approved_by": { "type": "string" }
+          }
+        },
+        "alert_calendar": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "document": { "type": "string" },
+              "expiry_date": { "type": "string", "format": "date" },
+              "days_until_expiry": { "type": "number" },
+              "alert_sent": { "type": "boolean" }
+            }
+          },
+          "description": "Alertas de vencimento para renovação"
+        },
+        "created_date": { "type": "string", "format": "date-time" },
+        "updated_date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["compliance_id", "ftr_code", "market"],
+      "example": {
+        "compliance_id": "CMP-030075-26",
+        "ftr_code": "03075-26",
+        "market": "Algeria",
+        "required_documents": [
+          {
+            "document_type": "ACID",
+            "status": "Obtained",
+            "expiry_date": "2026-09-01",
+            "issued_by": "SARL Tassali",
+            "reference_number": "ACID-2026-001"
+          },
+          {
+            "document_type": "Phyto",
+            "status": "Pending",
+            "expiry_date": "2026-10-15"
+          }
+        ],
+        "aflatoxin": {
+          "limit_ppb": 5,
+          "lab_result_ppb": 3.5,
+          "lab_name": "Eurofins",
+          "test_date": "2026-08-15",
+          "result_status": "Pass"
+        },
+        "quality_approval": {
+          "buyer_approved": true,
+          "approval_date": "2026-08-18",
+          "approved_by": "ahmed@tassali.dz"
+        }
+      }
+    },
+
+    "Payment": {
+      "description": "Registro de pagamento e comprovação de crédito",
+      "properties": {
+        "payment_id": { "type": "string", "pattern": "^PAY-[0-9]{6}-[0-9]{2}$" },
+        "ftr_code": { "type": "string" },
+        "invoice_number": { "type": "string" },
+        "amount_usd": { "type": "number" },
+        "payment_type": { "type": "string", "enum": ["Advance", "Main", "Partial"] },
+        "payment_method": { "type": "string", "enum": ["SWIFT", "LC", "CAD", "Check"] },
+        "swift_details": {
+          "type": "object",
+          "properties": {
+            "swift_reference": { "type": "string" },
+            "sending_bank": { "type": "string" },
+            "receiving_bank": { "type": "string" },
+            "sent_date": { "type": "string", "format": "date" },
+            "received_date": { "type": "string", "format": "date" }
+          }
+        },
+        "bank_credit_confirmation": {
+          "type": "object",
+          "properties": {
+            "confirmed": { "type": "boolean" },
+            "confirmation_date": { "type": "string", "format": "date" },
+            "confirmation_method": { "type": "string", "enum": ["Bank Statement", "Email from Bank", "Portal Check"] },
+            "bank_statement_ref": { "type": "string" }
+          },
+          "description": "Obrigatório antes de liberar docs CAD"
+        },
+        "original_documents_released": {
+          "type": "object",
+          "properties": {
+            "released": { "type": "boolean" },
+            "release_date": { "type": "string", "format": "date" },
+            "courier_company": { "type": "string" },
+            "tracking_number": { "type": "string" }
+          }
+        },
+        "payment_status": {
+          "type": "string",
+          "enum": ["Pending", "In Transit", "Received", "Cleared", "Disputed"],
+          "descriptio
