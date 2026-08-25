@@ -1,0 +1,5 @@
+node_modules
+npm audit
+git add .
+git commit -m "feat: Ruflo infraestrutura inicial + servidor Express rodando porta 3000"
+git push origin main
