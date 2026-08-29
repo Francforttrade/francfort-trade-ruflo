@@ -65,6 +65,7 @@ graph TB
 /classificar-doc
 /rastrear
 /webhook-whatsapp
+/webhook-email
 - Load balancer<br/>- Rate limiting<br/>- Auto-scaling"]
         
         APPSCRIPT["🔧 Apps Script<br/>- Gmail intake<br/>- Trigger 15min<br/>- Weekly reprocess<br/>- TRACKING mgmt<br/>- ContainerTracker"]

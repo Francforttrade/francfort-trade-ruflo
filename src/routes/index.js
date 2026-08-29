@@ -40,6 +40,17 @@ router.post('/webhook-whatsapp', async (req, res, next) => {
 	}
 });
 
+// Called by the Gmail intake Apps Script (scripts/apps-script/gmail-intake.gs)
+// on its 15min trigger, once per unread message it picks up.
+router.post('/webhook-email', async (req, res, next) => {
+	try {
+		const result = await master.route({ ...req.body, channel: 'email', targetAgent: 'comunicacao' });
+		res.json(result);
+	} catch (err) {
+		next(err);
+	}
+});
+
 router.use((err, req, res, _next) => {
 	logger.error('Erro ao processar rota', { path: req.path, error: err.message });
 	res.status(500).json({ error: 'internal_error' });

@@ -56,6 +56,9 @@ GCP_PROJECT_ID=<PROJECT_ID> bash scripts/deploy-cloud-run.sh
 - `--no-allow-unauthenticated` está no deploy por padrão — os endpoints
   (`/webhook-whatsapp` etc.) não são públicos. Ajuste isso quando o IAM/JWT
   do webhook estiver definido (`docs/ROADMAP.md`, seção C).
+- Intake do Gmail (`/webhook-email`) é alimentado por um Google Apps Script
+  externo a este deploy — setup em `docs/GMAIL_INTAKE.md`, incluindo como
+  ele chama um endpoint autenticado (IAM) a partir do Apps Script.
 - O `Dockerfile` **não foi validado com `docker build` real** neste ambiente
   — a política de rede da sessão bloqueia o registry do Docker Hub
   (`production.cloudfront.docker.com`, erro 403). Validar o build antes do
