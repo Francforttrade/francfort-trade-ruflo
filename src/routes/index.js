@@ -1,8 +1,11 @@
 const express = require('express');
 const master = require('../orchestrator/master');
 const logger = require('../utils/logger');
+const { requireWebhookSecret } = require('../middleware/webhookAuth');
 
 const router = express.Router();
+
+router.use(requireWebhookSecret);
 
 router.post('/digest', async (req, res, next) => {
 	try {
@@ -34,6 +37,15 @@ router.get('/rastrear', async (req, res, next) => {
 router.post('/webhook-whatsapp', async (req, res, next) => {
 	try {
 		const result = await master.route({ ...req.body, channel: 'whatsapp', targetAgent: 'comunicacao' });
+		res.json(result);
+	} catch (err) {
+		next(err);
+	}
+});
+
+router.post('/webhook-gmail', async (req, res, next) => {
+	try {
+		const result = await master.route({ ...req.body, channel: 'gmail', targetAgent: 'comunicacao' });
 		res.json(result);
 	} catch (err) {
 		next(err);
