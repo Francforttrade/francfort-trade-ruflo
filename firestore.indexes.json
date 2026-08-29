@@ -1,0 +1,29 @@
+{
+	"indexes": [
+		{
+			"collectionGroup": "ftr_processing",
+			"queryScope": "COLLECTION",
+			"fields": [
+				{ "fieldPath": "current_status", "order": "ASCENDING" },
+				{ "fieldPath": "last_updated", "order": "DESCENDING" }
+			]
+		},
+		{
+			"collectionGroup": "audit_log",
+			"queryScope": "COLLECTION",
+			"fields": [
+				{ "fieldPath": "resource_type", "order": "ASCENDING" },
+				{ "fieldPath": "timestamp", "order": "DESCENDING" }
+			]
+		},
+		{
+			"collectionGroup": "audit_log",
+			"queryScope": "COLLECTION",
+			"fields": [
+				{ "fieldPath": "user_email", "order": "ASCENDING" },
+				{ "fieldPath": "timestamp", "order": "DESCENDING" }
+			]
+		}
+	],
+	"fieldOverrides": []
+}
