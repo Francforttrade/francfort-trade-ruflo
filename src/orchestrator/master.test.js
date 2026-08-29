@@ -6,12 +6,12 @@ const master = require('./master');
 
 describe('orchestrator master', () => {
 	test('routes a valid FTR to the target agent', async () => {
-		const result = await master.route({ ftrCode: 'FTR-1', targetAgent: 'comercial' });
-		expect(result.agent).toBe('comercial');
+		const result = await master.route({ ftrCode: 'FTR-1', targetAgent: 'contratos' });
+		expect(result.agent).toBe('contratos');
 	});
 
 	test('sends invalid FTR to excecoes', async () => {
-		const result = await master.route({ targetAgent: 'comercial' });
+		const result = await master.route({ targetAgent: 'contratos' });
 		expect(result.agent).toBe('excecoes');
 	});
 
