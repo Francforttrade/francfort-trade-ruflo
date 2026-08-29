@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// RUFLO Firestore is written to exclusively by the Cloud Run backend
+// (service account, bypasses these rules) and by the Apps Script intake
+// jobs authenticated as the same service account. No client ever talks to
+// Firestore directly, so client reads/writes are denied by default.
+service cloud.firestore {
+	match /databases/{database}/documents {
+		match /{document=**} {
+			allow read, write: if false;
+		}
+	}
+}
