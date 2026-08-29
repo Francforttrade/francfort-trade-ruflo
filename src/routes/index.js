@@ -33,7 +33,7 @@ router.get('/rastrear', async (req, res, next) => {
 
 router.post('/webhook-whatsapp', async (req, res, next) => {
 	try {
-		const result = await master.route({ ...req.body, targetAgent: 'comunicacao' });
+		const result = await master.route({ ...req.body, channel: 'whatsapp', targetAgent: 'comunicacao' });
 		res.json(result);
 	} catch (err) {
 		next(err);

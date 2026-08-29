@@ -57,19 +57,30 @@ function isValidFtr(message) {
 	return Boolean(message && message.ftrCode && message.ftrCode.trim().length > 0);
 }
 
+// COMUNICACAO is the intake step that extracts the FTR code from raw text in
+// the first place, and MONITOR aggregates across FTRs — neither has one FTR
+// to gate on yet, so they skip the validation/mutex that every other agent
+// requires.
+const AGENTS_WITHOUT_FTR_GATE = new Set(['comunicacao', 'monitor']);
+
 async function route(message) {
+	const agent = AGENTS[message.targetAgent];
+	if (!agent) {
+		logger.warn('Nenhum agente encontrado para a mensagem', { message });
+		return AGENTS.excecoes.process({ reason: 'unknown_agent', message });
+	}
+
+	if (AGENTS_WITHOUT_FTR_GATE.has(message.targetAgent)) {
+		logger.info('Roteando sem gate de FTR', { targetAgent: message.targetAgent });
+		return agent.process(message);
+	}
+
 	if (!isValidFtr(message)) {
 		logger.warn('FTR inválido recebido, encaminhando para excecoes', { message });
 		return AGENTS.excecoes.process({ reason: 'invalid_ftr', message });
 	}
 
 	return withFtrLock(message.ftrCode, async () => {
-		const agent = AGENTS[message.targetAgent];
-		if (!agent) {
-			logger.warn('Nenhum agente encontrado para a mensagem', { message });
-			return AGENTS.excecoes.process({ reason: 'unknown_agent', message });
-		}
-
 		logger.info('Roteando FTR', { ftrCode: message.ftrCode, targetAgent: message.targetAgent });
 		return agent.process(message);
 	});

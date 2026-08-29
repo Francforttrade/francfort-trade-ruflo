@@ -20,6 +20,16 @@ describe('orchestrator master', () => {
 		expect(result.agent).toBe('excecoes');
 	});
 
+	test('routes to comunicacao without requiring an FTR code (intake step)', async () => {
+		const original = master.AGENTS.comunicacao.process;
+		master.AGENTS.comunicacao.process = async (ctx) => ({ agent: 'comunicacao', received: ctx.body });
+
+		const result = await master.route({ body: 'Oferta de 600 MT peanuts', targetAgent: 'comunicacao' });
+
+		master.AGENTS.comunicacao.process = original;
+		expect(result.agent).toBe('comunicacao');
+	});
+
 	test('serializes concurrent routing for the same FTR', async () => {
 		const order = [];
 		const original = master.AGENTS.comercial.process;
