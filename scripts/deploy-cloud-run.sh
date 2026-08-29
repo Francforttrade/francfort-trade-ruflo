@@ -21,6 +21,6 @@ gcloud run deploy "${SERVICE_NAME}" \
 	--region="${REGION}" \
 	--platform=managed \
 	--project="${PROJECT_ID}" \
-	--no-allow-unauthenticated \
+	--allow-unauthenticated \
 	--set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID}" \
-	--set-secrets="ANTHROPIC_API_KEY=francfort-anthropic-api-key:latest,SUPABASE_URL=francfort-supabase-url:latest,SUPABASE_KEY=francfort-supabase-key:latest,SUPABASE_SERVICE_KEY=francfort-supabase-service-key:latest,WHATSAPP_API_KEY=francfort-whatsapp-webhook-secret:latest"
+	--set-secrets="ANTHROPIC_API_KEY=francfort-anthropic-api-key:latest,SUPABASE_URL=francfort-supabase-url:latest,SUPABASE_KEY=francfort-supabase-key:latest,SUPABASE_SERVICE_KEY=francfort-supabase-service-key:latest,WEBHOOK_SHARED_SECRET=francfort-whatsapp-webhook-secret:latest"
