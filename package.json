@@ -8,8 +8,8 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint src/**/*.js",
-    "format": "prettier --write src/**/*.js"
+    "lint": "eslint src/**/*.js test/**/*.js server.js",
+    "format": "prettier --write src/**/*.js test/**/*.js server.js"
   },
   "keywords": [
     "ruflo",
