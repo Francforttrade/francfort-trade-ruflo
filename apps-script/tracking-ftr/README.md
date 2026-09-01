@@ -46,7 +46,7 @@ colisão de nomes.
    com `ocr`/`ocrLanguage`).
 5. Salve. Na primeira execução de qualquer função, a tela de
    consentimento OAuth vai listar os escopos do `appsscript.json`
-   (Gmail somente leitura, Sheets, Drive, Docs somente leitura,
+   (Gmail somente leitura, Sheets, Drive, Docs,
    gerenciar os próprios acionadores, e-mail da conta em uso). Revise
    e aceite.
 
@@ -132,3 +132,9 @@ trackingFtrTestarAnexo("<messageId>", 0)     // roda conversão/OCR em 1 anexo, 
   O risco residual (acesso amplo ao Drive da conta que executa o
   script) é mitigado pelas validações de compartilhamento que abortam
   a execução diante de qualquer configuração insegura.
+- Mesmo padrão para `DocumentApp.openById` (leitura de PDF/DOC
+  convertidos): exige o escopo cheio `https://www.googleapis.com/auth/documents`,
+  não o `documents.readonly` — também confirmado em teste real
+  (`Specified permissions are not sufficient to call
+  DocumentApp.openById`). O código só lê texto (`getBody().getText()`),
+  nunca edita o documento, apesar do escopo permitir edição.

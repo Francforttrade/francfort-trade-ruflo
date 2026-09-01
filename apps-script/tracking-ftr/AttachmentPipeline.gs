@@ -233,8 +233,11 @@ TrackingFTR.Attach = {};
       } catch (e) {
         // TIFF em particular tem suporte inconsistente no conversor do
         // Drive — falha aqui é tratada como "sem texto", não como erro
-        // fatal do lote inteiro.
-        SEC.logWarn('AttachmentPipeline: falha de OCR em imagem (formato pode não ser suportado pelo conversor).');
+        // fatal do lote inteiro. A mensagem real do erro é logada (só
+        // texto técnico da plataforma, nunca conteúdo do anexo) pra não
+        // mascarar problemas reais (ex.: escopo insuficiente) atrás de
+        // um "formato não suportado" genérico.
+        SEC.logErroSeguro('AttachmentPipeline: falha de OCR em imagem', e);
       }
     }
     return { texto: melhor, viaOcr: true, idioma: idiomas[0] || null };

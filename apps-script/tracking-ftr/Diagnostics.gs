@@ -341,8 +341,9 @@ TrackingFTR.Diag = {};
     console.log('Execução: ' + r.execucaoId + (r.dryRun ? ' [DRY-RUN]' : ''));
     console.log('Threads encontradas: ' + r.threadsEncontradas + ' | filtradas: ' + r.threadsFiltradas + ' | ambíguas: ' + r.threadsAmbiguas + ' | sem FTR: ' + r.threadsSemFtr + ' | com erro: ' + r.threadsComErro);
     console.log('FTRs resolvidos: ' + r.ftrsResolvidos.length + ' | updates: ' + r.updates + ' | novas linhas: ' + r.novasLinhas);
+    const verbo = r.dryRun ? 'campos que SERIAM gravados' : 'campos gravados';
     r.ftrsResolvidos.forEach(function (f) {
-      console.log('  FTR ' + f.ftr + ' — ' + (f.novaLinha ? 'NOVA LINHA' : 'UPDATE') + ' — campos gravados: ' + f.camposGravados + (f.temConflito ? ' — ⚠ CONFLITO (marcado REVISAR)' : ''));
+      console.log('  FTR ' + f.ftr + ' — ' + (f.novaLinha ? (r.dryRun ? 'NOVA LINHA (simulada)' : 'NOVA LINHA') : (r.dryRun ? 'UPDATE (simulado)' : 'UPDATE')) + ' — ' + verbo + ': ' + f.camposGravados + (f.temConflito ? ' — ⚠ CONFLITO (marcado REVISAR)' : ''));
     });
     (r.avisos || []).forEach(function (a) { console.log('⚠ ' + a); });
     if (r.erroCritico) console.log('✗ ERRO CRÍTICO: ' + r.erroCritico);
