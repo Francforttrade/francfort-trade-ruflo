@@ -51,6 +51,20 @@ disparado por um trigger conectado a este repositório):
 GCP_PROJECT_ID=<PROJECT_ID> bash scripts/deploy-cloud-run.sh
 ```
 
+## 6. Gmail intake (Apps Script)
+
+Fallback de intake por Gmail, ver `apps-script/gmail-intake/README.md` para
+o passo a passo completo de deploy (`clasp`) e configuração. Requer conceder
+à conta que autoriza o script o papel `roles/secretmanager.secretAccessor`
+no secret `francfort-whatsapp-webhook-secret` criado no passo 2:
+
+```bash
+gcloud secrets add-iam-policy-binding francfort-whatsapp-webhook-secret \
+	--member="user:<email-da-conta-do-apps-script>" \
+	--role="roles/secretmanager.secretAccessor" \
+	--project=<PROJECT_ID>
+```
+
 ## Notas
 
 - O serviço é implantado com `--allow-unauthenticated`: os endpoints
@@ -60,7 +74,8 @@ GCP_PROJECT_ID=<PROJECT_ID> bash scripts/deploy-cloud-run.sh
   `src/middleware/webhookAuth.js` — todo request precisa do header
   `X-Webhook-Secret` batendo com a env var `WEBHOOK_SHARED_SECRET`, mapeada
   ao secret `francfort-whatsapp-webhook-secret` do Secret Manager (item 2
-  acima). Veja `docs/GMAIL_INTAKE.md` para o setup do lado do Apps Script.
+  acima). Veja `apps-script/gmail-intake/README.md` para o setup do lado do
+  Apps Script.
 - O `Dockerfile` **não foi validado com `docker build` real** neste ambiente
   — a política de rede da sessão bloqueia o registry do Docker Hub
   (`production.cloudfront.docker.com`, erro 403). Validar o build antes do

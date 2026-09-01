@@ -45,6 +45,14 @@ router.post('/webhook-whatsapp', async (req, res, next) => {
 
 router.post('/webhook-gmail', async (req, res, next) => {
 	try {
+		// The Apps Script Gmail sync's "Testar conexão com o webhook" menu item
+		// posts { ping: true } to verify the URL/secret without a real message
+		// to process — answer it directly instead of routing a synthetic,
+		// mostly-empty message through COMUNICACAO and writing a junk session.
+		if (req.body && req.body.ping === true) {
+			return res.json({ pong: true });
+		}
+
 		const result = await master.route({ ...req.body, channel: 'gmail', targetAgent: 'comunicacao' });
 		res.json(result);
 	} catch (err) {
