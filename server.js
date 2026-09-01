@@ -16,7 +16,11 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
+// Express's default json() body limit is 100kb. The Gmail Apps Script intake
+// (apps-script/gmail-sync) embeds attachments up to 3MB as base64 in the
+// webhook payload, which inflates by ~33% plus JSON overhead — well past the
+// default and rejected with a 413 before it ever reaches our routes.
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (req, res) => {
 	res.json({ status: 'ok' });
