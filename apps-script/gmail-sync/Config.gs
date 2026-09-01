@@ -10,16 +10,20 @@
  * (src/agents/comunicacao, src/agents/financeiro, src/agents/logistics) —
  * see docs/ARQUITETURA.md and docs/PAGAMENTOS_TRACKING.md for why.
  *
- * Secrets (webhook URL + shared secret) are never hardcoded here — they are
- * read from Script Properties, set via the "FRANCFORT – PAGAMENTOS" menu's
- * "Configurar credenciais" item or manually under
- * Project Settings → Script Properties.
+ * The webhook URL is set via Script Properties (menu "Configurar
+ * credenciais"). The webhook shared secret is never stored in Script
+ * Properties at all — it's read at run time straight from Secret Manager
+ * (same `francfort-whatsapp-webhook-secret` secret the Cloud Run service's
+ * own WEBHOOK_SHARED_SECRET env var is provisioned from, per
+ * docs/DEPLOY.md), using the script's own OAuth token. This avoids a copy
+ * of the secret ever living in Apps Script's storage — only the GCP project
+ * ID it lives in is configured here.
  */
 
 var CONFIG = {
   // Script Properties keys (values set via the menu, not hardcoded).
   PROP_WEBHOOK_URL: 'WEBHOOK_URL', // e.g. https://ruflo-xxxx.run.app/webhook-gmail
-  PROP_WEBHOOK_SECRET: 'WEBHOOK_SHARED_SECRET', // must match Cloud Run's WEBHOOK_SHARED_SECRET
+  PROP_GCP_PROJECT_ID: 'GCP_PROJECT_ID', // project where WEBHOOK_SECRET_NAME lives in Secret Manager
   PROP_TEST_MODE: 'TEST_MODE', // 'true' | 'false' (string, Script Properties are strings)
   PROP_USE_LABEL: 'USE_PROCESSED_LABEL', // 'true' | 'false'
   PROP_LAST_CHECKPOINT: 'LAST_CHECKPOINT_EPOCH_MS',
@@ -43,6 +47,11 @@ var CONFIG = {
   DRIVE_FOLDER_NAME: 'Francfort Ruflo - Anexos Gmail Sync',
 
   PROCESSED_LABEL_NAME: 'AUTOMACAO/PAGAMENTOS-PROCESSADO',
+
+  // Reused from the Cloud Run/WhatsApp webhook provisioning (docs/DEPLOY.md)
+  // instead of a Gmail-sync-specific secret — one shared secret, one place
+  // it's rotated.
+  WEBHOOK_SECRET_NAME: 'francfort-whatsapp-webhook-secret',
 
   MAX_RETRIES: 3,
   RETRY_BASE_DELAY_MS: 1000,
@@ -74,8 +83,39 @@ function getWebhookUrl_() {
   return url;
 }
 
+function getGcpProjectId_() {
+  var projectId = getScriptProp_(CONFIG.PROP_GCP_PROJECT_ID);
+  if (!projectId) throw new Error('GCP_PROJECT_ID não configurado. Use o menu "FRANCFORT – PAGAMENTOS" > "Configurar credenciais".');
+  return projectId;
+}
+
+// Cached for the lifetime of one execution so a batch of N messages costs a
+// single Secret Manager read, not N of them.
+var cachedWebhookSecret_ = null;
+
 function getWebhookSecret_() {
-  var secret = getScriptProp_(CONFIG.PROP_WEBHOOK_SECRET);
-  if (!secret) throw new Error('WEBHOOK_SHARED_SECRET não configurado. Use o menu "FRANCFORT – PAGAMENTOS" > "Configurar credenciais".');
-  return secret;
+  if (cachedWebhookSecret_) return cachedWebhookSecret_;
+
+  var projectId = getGcpProjectId_();
+  var url =
+    'https://secretmanager.googleapis.com/v1/projects/' +
+    projectId +
+    '/secrets/' +
+    CONFIG.WEBHOOK_SECRET_NAME +
+    '/versions/latest:access';
+
+  var response = UrlFetchApp.fetch(url, {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true,
+  });
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error(
+      'Falha ao ler o secret "' + CONFIG.WEBHOOK_SECRET_NAME + '" do Secret Manager: ' + response.getContentText()
+    );
+  }
+
+  var body = JSON.parse(response.getContentText());
+  cachedWebhookSecret_ = Utilities.newBlob(Utilities.base64Decode(body.payload.data)).getDataAsString();
+  return cachedWebhookSecret_;
 }

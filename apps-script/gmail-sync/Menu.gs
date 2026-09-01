@@ -35,12 +35,19 @@ function menuConfigureCredentials_() {
   var url = urlResponse.getResponseText().trim();
   if (url) setScriptProp_(CONFIG.PROP_WEBHOOK_URL, url);
 
-  var secretResponse = ui.prompt('Configurar webhook', 'Shared secret (deve ser igual a WEBHOOK_SHARED_SECRET no Cloud Run):', ui.ButtonSet.OK_CANCEL);
-  if (secretResponse.getSelectedButton() !== ui.Button.OK) return;
-  var secret = secretResponse.getResponseText().trim();
-  if (secret) setScriptProp_(CONFIG.PROP_WEBHOOK_SECRET, secret);
+  // The webhook secret itself is never entered here — it's read straight
+  // from Secret Manager at run time (see Config.gs's getWebhookSecret_).
+  // Only the GCP project it lives in needs to be configured.
+  var projectResponse = ui.prompt(
+    'Configurar webhook',
+    'GCP Project ID onde o secret "' + CONFIG.WEBHOOK_SECRET_NAME + '" está no Secret Manager:',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (projectResponse.getSelectedButton() !== ui.Button.OK) return;
+  var projectId = projectResponse.getResponseText().trim();
+  if (projectId) setScriptProp_(CONFIG.PROP_GCP_PROJECT_ID, projectId);
 
-  ui.alert('Credenciais salvas em Script Properties.');
+  ui.alert('Credenciais salvas. O shared secret será lido do Secret Manager a cada execução.');
 }
 
 function menuToggleTestMode_() {
@@ -75,7 +82,8 @@ function menuShowStatus_() {
     'Modo de teste: ' + (isTestMode() ? 'ATIVADO' : 'desativado'),
     'Label de processado: ' + (isProcessedLabelEnabled() ? 'ATIVADA' : 'desativada'),
     'Mensagens já processadas (cache local): ' + loadProcessedIds_().length,
-    'Webhook configurado: ' + (getScriptProp_(CONFIG.PROP_WEBHOOK_URL) ? 'sim' : 'NÃO'),
+    'Webhook URL configurada: ' + (getScriptProp_(CONFIG.PROP_WEBHOOK_URL) ? 'sim' : 'NÃO'),
+    'GCP Project ID configurado: ' + (getScriptProp_(CONFIG.PROP_GCP_PROJECT_ID) ? 'sim' : 'NÃO'),
   ].join('\n');
   ui.alert('Status da sincronização', status, ui.ButtonSet.OK);
 }
