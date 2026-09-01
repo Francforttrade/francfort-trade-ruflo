@@ -159,7 +159,10 @@ function notifyCriticalFailure_(error, message) {
         'A sincronização parou após falhas consecutivas ao encaminhar mensagens para o webhook.\n\n' +
         'Última mensagem tentada: ' + (message ? message.getSubject() : 'N/D') + '\n' +
         'Erro: ' + error + '\n\n' +
-        'Verifique se o serviço Cloud Run está no ar e se WEBHOOK_URL/WEBHOOK_SHARED_SECRET ainda são válidos.',
+        'Verifique se o serviço Cloud Run está no ar, se WEBHOOK_URL/GCP_PROJECT_ID ainda são válidos, e se a conta ' +
+          'que autoriza este script ainda tem roles/secretmanager.secretAccessor no secret "' +
+          CONFIG.WEBHOOK_SECRET_NAME +
+          '".',
     });
   } catch (e) {
     Logger.log('Não foi possível enviar e-mail de alerta crítico: ' + e);

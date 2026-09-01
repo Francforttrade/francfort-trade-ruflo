@@ -25,7 +25,7 @@ function runSelfTests() {
   var results = [];
 
   results.push(checkTrue_('WEBHOOK_URL está configurado', Boolean(getScriptProp_(CONFIG.PROP_WEBHOOK_URL))));
-  results.push(checkTrue_('WEBHOOK_SHARED_SECRET está configurado', Boolean(getScriptProp_(CONFIG.PROP_WEBHOOK_SECRET))));
+  results.push(checkTrue_('GCP_PROJECT_ID está configurado', Boolean(getScriptProp_(CONFIG.PROP_GCP_PROJECT_ID))));
   results.push(checkTrue_('Checkpoint é um número válido', !isNaN(getCheckpointMs_())));
   results.push(checkTrue_('Lista de processados é um array', Array.isArray(loadProcessedIds_())));
 
