@@ -5,6 +5,8 @@ const { isValidSwiftReference } = require('./swiftValidation');
 const { queryBankCreditConfirmation } = require('./bankQuery');
 const { canReleaseOriginalDocuments } = require('./releaseGate');
 const { isPaymentSuspiciouslyEarly } = require('./reconciliation');
+const { computePaymentStatus } = require('./paymentStatusService');
+const { detectSwiftMention } = require('./paymentSignals');
 
 // FINANCEIRO: Validate SWIFT ref, confirm bank credit, authorize document release. SLA: 7 days pre-arrival.
 async function process(context) {
@@ -42,6 +44,25 @@ async function process(context) {
 	const reconciliation =
 		paymentDate && etaDate ? { suspiciously_early: isPaymentSuspiciouslyEarly(paymentDate, etaDate) } : null;
 
+	// Payment-tracking status/balance (task spec section 4) only computes when
+	// the caller supplies an invoice total — most existing FINANCEIRO callers
+	// (release-gate checks) don't, and this stays null for them rather than
+	// guessing a total.
+	let paymentTracking = null;
+	if (context.totalInvoiceUsd != null) {
+		const swiftReceived =
+			context.swiftReceived ?? (context.messageText ? detectSwiftMention(context.messageText) : Boolean(swiftReference));
+		paymentTracking = computePaymentStatus({
+			totalInvoiceUsd: context.totalInvoiceUsd,
+			confirmedPaymentsUsd: context.confirmedPaymentsUsd || 0,
+			swiftReceived,
+			dueDate: context.paymentDueDate || null,
+			today: context.today ? new Date(context.today) : new Date(),
+			alertWindowDays: context.alertWindowDays,
+			needsManualReview: context.needsManualReview || false,
+		});
+	}
+
 	return {
 		agent: 'financeiro',
 		ftr_code: ftrCode,
@@ -50,6 +71,7 @@ async function process(context) {
 		release_flag: releaseFlag,
 		audit_id: auditId,
 		reconciliation,
+		payment_tracking: paymentTracking,
 	};
 }
 
