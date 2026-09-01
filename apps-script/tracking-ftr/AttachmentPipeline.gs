@@ -150,13 +150,38 @@ TrackingFTR.Attach = {};
       parents: [{ id: folderId }],
     };
     const params = { convert: true };
-    if (ocr) {
-      params.ocr = true;
-      if (ocrLanguage) params.ocrLanguage = ocrLanguage;
+    if (!ocr) {
+      const arquivo = Drive.Files.insert(resource, blob, params);
+      registrar_(registro, arquivo.id);
+      return arquivo;
     }
-    const arquivo = Drive.Files.insert(resource, blob, params);
-    registrar_(registro, arquivo.id);
-    return arquivo;
+
+    params.ocr = true;
+    if (ocrLanguage) params.ocrLanguage = ocrLanguage;
+
+    // OCR tem cota de taxa própria e mais restrita na Drive API. Uma
+    // pausa fixa antes de cada chamada evita rajadas; se mesmo assim
+    // esbarrar no limite (erro transiente, não uma falha real de
+    // conversão), tenta de novo com backoff antes de desistir.
+    let ultimoErro = null;
+    for (let tentativa = 1; tentativa <= CFG.OCR_MAX_TENTATIVAS_RATE_LIMIT; tentativa++) {
+      Utilities.sleep(CFG.OCR_INTERVALO_MS);
+      try {
+        const arquivo = Drive.Files.insert(resource, blob, params);
+        registrar_(registro, arquivo.id);
+        return arquivo;
+      } catch (e) {
+        ultimoErro = e;
+        const msg = (e && e.message ? e.message : '').toLowerCase();
+        const ehRateLimit = msg.indexOf('rate limit') !== -1 || msg.indexOf('quota') !== -1;
+        if (!ehRateLimit || tentativa === CFG.OCR_MAX_TENTATIVAS_RATE_LIMIT) {
+          throw e;
+        }
+        SEC.logWarn('AttachmentPipeline: rate limit de OCR — tentativa ' + tentativa + '/' + CFG.OCR_MAX_TENTATIVAS_RATE_LIMIT + ', aguardando antes de repetir.');
+        Utilities.sleep(CFG.OCR_BACKOFF_BASE_MS * tentativa);
+      }
+    }
+    throw ultimoErro;
   }
 
   function textoDoGoogleDoc_(fileId) {

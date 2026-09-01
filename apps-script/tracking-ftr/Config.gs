@@ -75,6 +75,12 @@ TrackingFTR.Config = {
   OCR_IDIOMAS_PRIORIDADE: ['pt', 'en', 'es', 'fr'],
   OCR_MAX_TENTATIVAS_IDIOMA: 2, // limite de custo: só tenta os N primeiros idiomas da lista acima
   OCR_MIN_CARACTERES_TEXTO_VALIDO: 40,
+  // A Drive API tem um limite de taxa próprio (mais restrito) para
+  // operações de OCR — sem espaçamento, um lote de anexos escaneados
+  // esbarra em "User rate limit exceeded for OCR" rapidamente.
+  OCR_INTERVALO_MS: 1500,
+  OCR_MAX_TENTATIVAS_RATE_LIMIT: 3,
+  OCR_BACKOFF_BASE_MS: 3000,
 
   // ----------------------------------------------------------
   // Tipos de anexo aceitos (MIME é a fonte de verdade; extensão é só apoio)

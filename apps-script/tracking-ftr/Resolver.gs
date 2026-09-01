@@ -125,7 +125,7 @@ TrackingFTR.Resolver = {};
         return { ftr: ftr, ambiguo: false, regra: 'origem:' + origem, evidencia: SEC.mascararEvidencia(vistos.get(ftr).texto.substring(0, 120)) };
       }
       if (vistos.size > 1) {
-        return { ftr: null, ambiguo: true, motivo: 'Múltiplos FTRs candidatos em ' + origem + ': ' + Array.from(vistos.keys()).map(function (f) { return SEC.mascarar(f, 3, 2); }).join(', ') };
+        return { ftr: null, ambiguo: true, motivo: 'Múltiplos FTRs candidatos em ' + origem + ': ' + Array.from(vistos.keys()).map(function (f) { return SEC.mascararComImpressaoDigital(f, 3, 2); }).join(', ') };
       }
     }
     return { ftr: null, ambiguo: false, motivo: 'nenhum_ftr_identificado' };

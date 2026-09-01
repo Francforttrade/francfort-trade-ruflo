@@ -56,6 +56,19 @@ TrackingFTR.Security = {};
     return s.substring(0, ini) + '…' + s.substring(s.length - fim);
   };
 
+  /**
+   * Mascara e anexa uma "impressão digital" curta (4 hex do hash) —
+   * usado quando o log precisa DISTINGUIR dois valores mascarados que
+   * colidiriam visualmente (ex.: dois FTRs candidatos em um caso de
+   * ambiguidade), sem expor o valor completo. A impressão é estável:
+   * o mesmo valor sempre gera a mesma impressão, então dá pra
+   * reconhecer "é o mesmo conflito de novo" entre execuções.
+   */
+  S.mascararComImpressaoDigital = function (valor, manterInicio, manterFim) {
+    if (!valor) return '';
+    return S.mascarar(valor, manterInicio, manterFim) + '#' + S.sha256Hex(valor.toString()).substring(0, 4);
+  };
+
   /** Mascara nome de arquivo preservando só a extensão. */
   S.mascararNomeArquivo = function (nome) {
     if (!nome) return '(sem-nome)';
