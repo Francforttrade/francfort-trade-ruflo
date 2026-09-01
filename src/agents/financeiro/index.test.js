@@ -87,4 +87,22 @@ describe('financeiro agent', () => {
 
 		expect(result.reconciliation).toEqual({ suspiciously_early: true });
 	});
+
+	test('computes payment tracking status/balance when an invoice total is supplied', async () => {
+		const result = await process({
+			ftrCode: '03075-26',
+			invoiceStatus: 'Issued',
+			paymentStatus: 'Pending',
+			totalInvoiceUsd: 750000,
+			confirmedPaymentsUsd: 250000,
+			paymentDueDate: '2026-12-01',
+		});
+
+		expect(result.payment_tracking).toEqual({ status: 'PAGAMENTO_PARCIAL', balance: 500000 });
+	});
+
+	test('leaves payment_tracking null when no invoice total is supplied', async () => {
+		const result = await process({ ftrCode: '03075-26', invoiceStatus: 'Draft', paymentStatus: 'Pending' });
+		expect(result.payment_tracking).toBeNull();
+	});
 });

@@ -39,6 +39,32 @@ describe('logistics agent', () => {
 		expect(result.tracking).toBeNull();
 		expect(result.container_check).toBeNull();
 		expect(result.calendar_event).toBeNull();
+		expect(result.payment_tracking_calendar).toBeNull();
 		expect(result.demurrage).toBeNull();
+	});
+
+	test('attempts the payment-tracking Calendar event when tracking identity fields are given', async () => {
+		// NB: `process` in this scope is the imported agent function (see the
+		// destructured require above), not Node's global — use globalThis to
+		// reach the real env.
+		const nodeProcess = globalThis.process;
+		const originalKey = nodeProcess.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY;
+		const originalEmail = nodeProcess.env.GOOGLE_CALENDAR_IMPERSONATE_EMAIL;
+		delete nodeProcess.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY;
+		delete nodeProcess.env.GOOGLE_CALENDAR_IMPERSONATE_EMAIL;
+
+		const result = await process({
+			ftrCode: '03075-26',
+			trackingId: 'TRK-000001-26',
+			buyer: 'AGROTRADE RUS LLC',
+			etaDate: '2026-09-20',
+		});
+
+		expect(result.payment_tracking_calendar).toEqual(
+			expect.objectContaining({ created: false, error: 'calendar_not_configured' })
+		);
+
+		if (originalKey) nodeProcess.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY = originalKey;
+		if (originalEmail) nodeProcess.env.GOOGLE_CALENDAR_IMPERSONATE_EMAIL = originalEmail;
 	});
 });
