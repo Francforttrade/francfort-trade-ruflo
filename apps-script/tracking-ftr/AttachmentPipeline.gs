@@ -25,7 +25,7 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.Attach = {};
 
-(function (A, CFG, SEC) {
+(function (A) {
 
   // ==========================================================
   // DISPONIBILIDADE DO SERVIÇO AVANÇADO
@@ -53,7 +53,7 @@ TrackingFTR.Attach = {};
    */
   A.obterPastaTemp = function () {
     const props = PropertiesService.getScriptProperties();
-    let folderId = props.getProperty(CFG.PROP_TEMP_FOLDER_ID);
+    let folderId = props.getProperty(TrackingFTR.Config.PROP_TEMP_FOLDER_ID);
     let folder = null;
 
     if (folderId) {
@@ -66,12 +66,12 @@ TrackingFTR.Attach = {};
     }
 
     if (!folder) {
-      folder = DriveApp.createFolder(CFG.PASTA_TEMP_NOME);
-      props.setProperty(CFG.PROP_TEMP_FOLDER_ID, folder.getId());
-      SEC.logInfo('AttachmentPipeline: pasta temporária criada.');
+      folder = DriveApp.createFolder(TrackingFTR.Config.PASTA_TEMP_NOME);
+      props.setProperty(TrackingFTR.Config.PROP_TEMP_FOLDER_ID, folder.getId());
+      TrackingFTR.Security.logInfo('AttachmentPipeline: pasta temporária criada.');
     }
 
-    const validacao = SEC.validarPastaTemp(folder);
+    const validacao = TrackingFTR.Security.validarPastaTemp(folder);
     if (!validacao.seguro) {
       throw new Error('CONFIG_INSEGURA: ' + validacao.motivo);
     }
@@ -87,16 +87,16 @@ TrackingFTR.Attach = {};
     const contentType = (attachment.getContentType() || '').toLowerCase().split(';')[0].trim();
     const tamanho = attachment.getSize();
 
-    if (!CFG.MIME_ACEITOS[contentType]) {
+    if (!TrackingFTR.Config.MIME_ACEITOS[contentType]) {
       return { valido: false, motivo: 'mime_nao_suportado', tipoInterno: null, contentType: contentType };
     }
     if (tamanho <= 0) {
       return { valido: false, motivo: 'anexo_vazio', tipoInterno: null, contentType: contentType };
     }
-    if (tamanho > CFG.MAX_ANEXO_BYTES) {
+    if (tamanho > TrackingFTR.Config.MAX_ANEXO_BYTES) {
       return { valido: false, motivo: 'excede_tamanho_maximo', tipoInterno: null, contentType: contentType };
     }
-    return { valido: true, motivo: null, tipoInterno: CFG.MIME_ACEITOS[contentType], contentType: contentType };
+    return { valido: true, motivo: null, tipoInterno: TrackingFTR.Config.MIME_ACEITOS[contentType], contentType: contentType };
   };
 
   // ==========================================================
@@ -125,7 +125,7 @@ TrackingFTR.Attach = {};
         removidos++;
       } catch (e) {
         // Já removido ou inacessível — não é um erro crítico de execução.
-        SEC.logWarn('AttachmentPipeline: falha ao mover temporário ' + SEC.mascarar(id, 4, 4) + ' para lixeira.');
+        TrackingFTR.Security.logWarn('AttachmentPipeline: falha ao mover temporário ' + TrackingFTR.Security.mascarar(id, 4, 4) + ' para lixeira.');
       }
     });
     registro.ids = [];
@@ -146,7 +146,7 @@ TrackingFTR.Attach = {};
    */
   function converterViaDrive_(blob, folderId, ocr, ocrLanguage, registro) {
     const resource = {
-      title: SEC.nomeTempAleatorio(),
+      title: TrackingFTR.Security.nomeTempAleatorio(),
       parents: [{ id: folderId }],
     };
     const params = { convert: true };
@@ -164,8 +164,8 @@ TrackingFTR.Attach = {};
     // esbarrar no limite (erro transiente, não uma falha real de
     // conversão), tenta de novo com backoff antes de desistir.
     let ultimoErro = null;
-    for (let tentativa = 1; tentativa <= CFG.OCR_MAX_TENTATIVAS_RATE_LIMIT; tentativa++) {
-      Utilities.sleep(CFG.OCR_INTERVALO_MS);
+    for (let tentativa = 1; tentativa <= TrackingFTR.Config.OCR_MAX_TENTATIVAS_RATE_LIMIT; tentativa++) {
+      Utilities.sleep(TrackingFTR.Config.OCR_INTERVALO_MS);
       try {
         const arquivo = Drive.Files.insert(resource, blob, params);
         registrar_(registro, arquivo.id);
@@ -174,11 +174,11 @@ TrackingFTR.Attach = {};
         ultimoErro = e;
         const msg = (e && e.message ? e.message : '').toLowerCase();
         const ehRateLimit = msg.indexOf('rate limit') !== -1 || msg.indexOf('quota') !== -1;
-        if (!ehRateLimit || tentativa === CFG.OCR_MAX_TENTATIVAS_RATE_LIMIT) {
+        if (!ehRateLimit || tentativa === TrackingFTR.Config.OCR_MAX_TENTATIVAS_RATE_LIMIT) {
           throw e;
         }
-        SEC.logWarn('AttachmentPipeline: rate limit de OCR — tentativa ' + tentativa + '/' + CFG.OCR_MAX_TENTATIVAS_RATE_LIMIT + ', aguardando antes de repetir.');
-        Utilities.sleep(CFG.OCR_BACKOFF_BASE_MS * tentativa);
+        TrackingFTR.Security.logWarn('AttachmentPipeline: rate limit de OCR — tentativa ' + tentativa + '/' + TrackingFTR.Config.OCR_MAX_TENTATIVAS_RATE_LIMIT + ', aguardando antes de repetir.');
+        Utilities.sleep(TrackingFTR.Config.OCR_BACKOFF_BASE_MS * tentativa);
       }
     }
     throw ultimoErro;
@@ -203,7 +203,7 @@ TrackingFTR.Attach = {};
   }
 
   function textoValido_(texto) {
-    return !!(texto && texto.replace(/\s+/g, '').length >= CFG.OCR_MIN_CARACTERES_TEXTO_VALIDO);
+    return !!(texto && texto.replace(/\s+/g, '').length >= TrackingFTR.Config.OCR_MIN_CARACTERES_TEXTO_VALIDO);
   }
 
   /**
@@ -212,7 +212,7 @@ TrackingFTR.Attach = {};
    * vier vazio/curto, assume que é PDF escaneado e refaz com ocr:true,
    * tentando os idiomas configurados em ordem até achar um texto
    * plausível ou esgotar o limite de tentativas (custo de OCR por
-   * execução é limitado por CFG.MAX_OPERACOES_OCR_POR_EXECUCAO).
+   * execução é limitado por TrackingFTR.Config.MAX_OPERACOES_OCR_POR_EXECUCAO).
    */
   A.extrairTextoPdf = function (blob, folder, registro, orcamentoOcr) {
     let arquivo = converterViaDrive_(blob, folder.getId(), false, null, registro);
@@ -225,7 +225,7 @@ TrackingFTR.Attach = {};
       return { texto: texto || '', viaOcr: false, idioma: null, ocrIndisponivelPorOrcamento: true };
     }
 
-    const idiomas = CFG.OCR_IDIOMAS_PRIORIDADE.slice(0, CFG.OCR_MAX_TENTATIVAS_IDIOMA);
+    const idiomas = TrackingFTR.Config.OCR_IDIOMAS_PRIORIDADE.slice(0, TrackingFTR.Config.OCR_MAX_TENTATIVAS_IDIOMA);
     for (let i = 0; i < idiomas.length; i++) {
       if (orcamentoOcr.restantes <= 0) break;
       orcamentoOcr.restantes--;
@@ -245,7 +245,7 @@ TrackingFTR.Attach = {};
     if (orcamentoOcr.restantes <= 0) {
       return { texto: '', viaOcr: false, idioma: null, ocrIndisponivelPorOrcamento: true };
     }
-    const idiomas = CFG.OCR_IDIOMAS_PRIORIDADE.slice(0, CFG.OCR_MAX_TENTATIVAS_IDIOMA);
+    const idiomas = TrackingFTR.Config.OCR_IDIOMAS_PRIORIDADE.slice(0, TrackingFTR.Config.OCR_MAX_TENTATIVAS_IDIOMA);
     let melhor = '';
     for (let i = 0; i < idiomas.length; i++) {
       if (orcamentoOcr.restantes <= 0) break;
@@ -262,7 +262,7 @@ TrackingFTR.Attach = {};
         // texto técnico da plataforma, nunca conteúdo do anexo) pra não
         // mascarar problemas reais (ex.: escopo insuficiente) atrás de
         // um "formato não suportado" genérico.
-        SEC.logErroSeguro('AttachmentPipeline: falha de OCR em imagem', e);
+        TrackingFTR.Security.logErroSeguro('AttachmentPipeline: falha de OCR em imagem', e);
       }
     }
     return { texto: melhor, viaOcr: true, idioma: idiomas[0] || null };
@@ -298,7 +298,7 @@ TrackingFTR.Attach = {};
   A.processarAnexo = function (attachment, folder, registro, orcamentoOcr) {
     const validacao = A.validarAnexo(attachment);
     const blob = attachment.copyBlob();
-    const hash = SEC.sha256HexDeBlob(blob);
+    const hash = TrackingFTR.Security.sha256HexDeBlob(blob);
 
     if (!validacao.valido) {
       return { ok: false, motivoRejeicao: validacao.motivo, tipoInterno: null, hash: hash, texto: '', viaOcr: false, idioma: null };
@@ -339,7 +339,7 @@ TrackingFTR.Attach = {};
       }
       return Object.assign({ ok: true, motivoRejeicao: null, tipoInterno: validacao.tipoInterno, hash: hash }, resultado);
     } catch (e) {
-      SEC.logErroSeguro('AttachmentPipeline: falha ao processar anexo (' + validacao.tipoInterno + ')', e);
+      TrackingFTR.Security.logErroSeguro('AttachmentPipeline: falha ao processar anexo (' + validacao.tipoInterno + ')', e);
       return { ok: false, motivoRejeicao: 'erro_conversao', tipoInterno: validacao.tipoInterno, hash: hash, texto: '', viaOcr: false, idioma: null };
     }
   };
@@ -354,13 +354,13 @@ TrackingFTR.Attach = {};
    * Remove (lixeira) arquivos temporários órfãos: precisam estar
    * DENTRO da pasta temporária controlada, ter o padrão de nome
    * `tmp_<hex>` gerado por Security.nomeTempAleatorio, e idade maior
-   * que CFG.RETENCAO_TEMP_HORAS. Nunca varre o Drive inteiro nem usa
+   * que TrackingFTR.Config.RETENCAO_TEMP_HORAS. Nunca varre o Drive inteiro nem usa
    * DriveApp.searchFiles com critério amplo — só itera o conteúdo da
    * própria pasta controlada.
    */
   A.limparTemporariosOrfaos = function () {
     const folder = A.obterPastaTemp();
-    const limiteMs = CFG.RETENCAO_TEMP_HORAS * 60 * 60 * 1000;
+    const limiteMs = TrackingFTR.Config.RETENCAO_TEMP_HORAS * 60 * 60 * 1000;
     const agora = Date.now();
     let removidos = 0;
     let inspecionados = 0;
@@ -379,8 +379,8 @@ TrackingFTR.Attach = {};
       }
     }
 
-    SEC.logInfo('AttachmentPipeline: limpeza de órfãos — inspecionados=' + inspecionados + ', removidos=' + removidos + '.');
+    TrackingFTR.Security.logInfo('AttachmentPipeline: limpeza de órfãos — inspecionados=' + inspecionados + ', removidos=' + removidos + '.');
     return { inspecionados: inspecionados, removidos: removidos };
   };
 
-})(TrackingFTR.Attach, TrackingFTR.Config, TrackingFTR.Security);
+})(TrackingFTR.Attach);

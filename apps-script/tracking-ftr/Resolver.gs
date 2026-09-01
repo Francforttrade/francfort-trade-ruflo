@@ -15,7 +15,7 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.Resolver = {};
 
-(function (R, CFG, SEC, E) {
+(function (R) {
 
   const PRIORIDADE_FONTE = { ATTACHMENT: 1, BODY_PLAIN: 3, BODY_HTML: 4, BODY_TABLE: 4, SUBJECT: 5, LABEL: 6, HISTORICO: 7 };
 
@@ -31,14 +31,14 @@ TrackingFTR.Resolver = {};
   R.coletarUnidades = function (thread, mensagens, folder, registroTemp, orcamentoOcr, cacheHashes) {
     const unidades = [];
     const anexosProcessados = [];
-    const threadIdMascarado = SEC.idMascarado(thread.getId());
+    const threadIdMascarado = TrackingFTR.Security.idMascarado(thread.getId());
 
     const ordenadas = mensagens.slice().sort(function (a, b) { return b.getDate() - a.getDate(); });
 
     ordenadas.forEach(function (msg, idxMsg) {
       const info = TrackingFTR.Gmail.coletarBlocosDeMensagem(msg);
       const ehRecente = idxMsg === 0;
-      const msgIdMascarado = SEC.idMascarado(msg.getId());
+      const msgIdMascarado = TrackingFTR.Security.idMascarado(msg.getId());
 
       info.blocos.forEach(function (bloco) {
         unidades.push({
@@ -51,18 +51,18 @@ TrackingFTR.Resolver = {};
           nomeArquivo: null,
           hash: null,
           prioridadeFonte: ehRecente ? PRIORIDADE_FONTE[bloco.origem] : PRIORIDADE_FONTE.HISTORICO,
-          indicadorVersao: E.detectarIndicadorVersao(bloco.texto),
+          indicadorVersao: TrackingFTR.Extract.detectarIndicadorVersao(bloco.texto),
         });
       });
 
-      const anexos = msg.getAttachments({ includeInlineImages: false }).slice(0, CFG.MAX_ANEXOS_POR_THREAD);
+      const anexos = msg.getAttachments({ includeInlineImages: false }).slice(0, TrackingFTR.Config.MAX_ANEXOS_POR_THREAD);
       anexos.forEach(function (att) {
-        const nomeMascarado = SEC.mascararNomeArquivo(att.getName());
+        const nomeMascarado = TrackingFTR.Security.mascararNomeArquivo(att.getName());
         let resultado;
         try {
           resultado = TrackingFTR.Attach.processarAnexo(att, folder, registroTemp, orcamentoOcr);
         } catch (e) {
-          SEC.logErroSeguro('Resolver: falha inesperada processando anexo', e);
+          TrackingFTR.Security.logErroSeguro('Resolver: falha inesperada processando anexo', e);
           resultado = { ok: false, motivoRejeicao: 'erro_inesperado', tipoInterno: null, hash: null, texto: '', viaOcr: false, idioma: null };
         }
 
@@ -76,7 +76,7 @@ TrackingFTR.Resolver = {};
         if (!resultado.ok || !resultado.texto || jaProcessado) return;
         if (cacheHashes && resultado.hash) cacheHashes.add(resultado.hash);
 
-        const classif = E.classificarDocumento(resultado.texto, (att.getName() || '').toLowerCase());
+        const classif = TrackingFTR.Extract.classificarDocumento(resultado.texto, (att.getName() || '').toLowerCase());
         unidades.push({
           origem: 'ATTACHMENT',
           texto: resultado.texto,
@@ -87,7 +87,7 @@ TrackingFTR.Resolver = {};
           nomeArquivo: nomeMascarado,
           hash: resultado.hash,
           prioridadeFonte: ehRecente ? PRIORIDADE_FONTE.ATTACHMENT : PRIORIDADE_FONTE.HISTORICO,
-          indicadorVersao: E.detectarIndicadorVersao(resultado.texto),
+          indicadorVersao: TrackingFTR.Extract.detectarIndicadorVersao(resultado.texto),
           viaOcr: resultado.viaOcr,
         });
       });
@@ -116,16 +116,16 @@ TrackingFTR.Resolver = {};
       const doOrigem = unidades.filter(function (u) { return u.origem === origem; });
       const vistos = new Map(); // ftr -> unidade
       doOrigem.forEach(function (u) {
-        E.extrairCandidatosFTR(u.texto).forEach(function (ftr) {
+        TrackingFTR.Extract.extrairCandidatosFTR(u.texto).forEach(function (ftr) {
           if (!vistos.has(ftr)) vistos.set(ftr, u);
         });
       });
       if (vistos.size === 1) {
         const ftr = Array.from(vistos.keys())[0];
-        return { ftr: ftr, ambiguo: false, regra: 'origem:' + origem, evidencia: SEC.mascararEvidencia(vistos.get(ftr).texto.substring(0, 120)) };
+        return { ftr: ftr, ambiguo: false, regra: 'origem:' + origem, evidencia: TrackingFTR.Security.mascararEvidencia(vistos.get(ftr).texto.substring(0, 120)) };
       }
       if (vistos.size > 1) {
-        return { ftr: null, ambiguo: true, motivo: 'Múltiplos FTRs candidatos em ' + origem + ': ' + Array.from(vistos.keys()).map(function (f) { return SEC.mascararComImpressaoDigital(f, 3, 2); }).join(', ') };
+        return { ftr: null, ambiguo: true, motivo: 'Múltiplos FTRs candidatos em ' + origem + ': ' + Array.from(vistos.keys()).map(function (f) { return TrackingFTR.Security.mascararComImpressaoDigital(f, 3, 2); }).join(', ') };
       }
     }
     return { ftr: null, ambiguo: false, motivo: 'nenhum_ftr_identificado' };
@@ -152,7 +152,7 @@ TrackingFTR.Resolver = {};
   /**
    * `extratorAdaptado(unidade)` deve devolver `{valorBruto, valorNormalizado,
    * regra, evidencia}` ou null. `hierarquia` é um array de tipos
-   * documentais (CFG.HIERARQUIA_CONFIANCA[...]) ou null (usa
+   * documentais (TrackingFTR.Config.HIERARQUIA_CONFIANCA[...]) ou null (usa
    * prioridadeFonte genérica).
    */
   function resolverCampo_(unidades, extratorAdaptado, hierarquia, igualdade) {
@@ -207,56 +207,56 @@ TrackingFTR.Resolver = {};
   }
 
   R.resolverBooking = function (unidades, ftr) {
-    return resolverCampo_(unidades, function (u) { return adaptador_(function (t) { return E.extrairBooking(t, ftr); })(u); }, CFG.HIERARQUIA_CONFIANCA.BOOKING);
+    return resolverCampo_(unidades, function (u) { return adaptador_(function (t) { return TrackingFTR.Extract.extrairBooking(t, ftr); })(u); }, TrackingFTR.Config.HIERARQUIA_CONFIANCA.BOOKING);
   };
 
   R.resolverBL = function (unidades, bookingResolvido) {
     const bookingValor = bookingResolvido && bookingResolvido.vencedor ? bookingResolvido.vencedor.valorNormalizado : null;
     return resolverCampo_(unidades, function (u) {
-      const r = E.extrairBL(u.texto, bookingValor);
+      const r = TrackingFTR.Extract.extrairBL(u.texto, bookingValor);
       if (!r) return null;
       return { valorBruto: r.valorGravar, valorNormalizado: r.valorGravar.toUpperCase(), regra: r.regra, evidencia: r.evidencia };
-    }, CFG.HIERARQUIA_CONFIANCA.BL);
+    }, TrackingFTR.Config.HIERARQUIA_CONFIANCA.BL);
   };
 
   R.resolverPortoOrigem = function (unidades) {
-    return resolverCampo_(unidades, adaptador_(E.extrairPortoOrigem), CFG.HIERARQUIA_CONFIANCA.PORTO_ORIGEM);
+    return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairPortoOrigem), TrackingFTR.Config.HIERARQUIA_CONFIANCA.PORTO_ORIGEM);
   };
   R.resolverPortoDestino = function (unidades) {
-    return resolverCampo_(unidades, adaptador_(E.extrairPortoDestino), CFG.HIERARQUIA_CONFIANCA.POD);
+    return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairPortoDestino), TrackingFTR.Config.HIERARQUIA_CONFIANCA.POD);
   };
-  R.resolverPlaceOfReceipt = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairPlaceOfReceipt), null); };
-  R.resolverPlaceOfDelivery = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairPlaceOfDelivery), null); };
+  R.resolverPlaceOfReceipt = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairPlaceOfReceipt), null); };
+  R.resolverPlaceOfDelivery = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairPlaceOfDelivery), null); };
 
   R.resolverMT = function (unidades) {
     return resolverCampo_(unidades, function (u) {
-      const r = E.extrairPesoMT(u.texto);
+      const r = TrackingFTR.Extract.extrairPesoMT(u.texto);
       if (!r) return null;
       return { valorBruto: r.valorBruto, valorNormalizado: r.valorMT, regra: r.regra, evidencia: r.evidencia };
-    }, CFG.HIERARQUIA_CONFIANCA.MT, function (a, b) { return Math.abs(a - b) < 0.05; });
+    }, TrackingFTR.Config.HIERARQUIA_CONFIANCA.MT, function (a, b) { return Math.abs(a - b) < 0.05; });
   };
 
   R.resolverInvoice = function (unidades, ftr) {
-    return resolverCampo_(unidades, function (u) { return adaptador_(function (t) { return E.extrairInvoice(t, ftr); })(u); }, CFG.HIERARQUIA_CONFIANCA.INVOICE);
+    return resolverCampo_(unidades, function (u) { return adaptador_(function (t) { return TrackingFTR.Extract.extrairInvoice(t, ftr); })(u); }, TrackingFTR.Config.HIERARQUIA_CONFIANCA.INVOICE);
   };
 
-  R.resolverIncoterm = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairIncoterm), null); };
-  R.resolverVessel = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairVessel), null); };
-  R.resolverVoyage = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairVoyage), null); };
-  R.resolverArmador = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairArmador), null); };
-  R.resolverETD = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairETD), null); };
-  R.resolverETA = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairETA), null); };
-  R.resolverDataEmbarque = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairDataEmbarque), null); };
-  R.resolverSafra = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairSafra), null); };
-  R.resolverTermoPagamento = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairTermoPagamento), null); };
-  R.resolverValorUnitario = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairValorUnitario), null); };
-  R.resolverValorTotal = function (unidades) { return resolverCampo_(unidades, adaptador_(E.extrairValorTotal), null); };
+  R.resolverIncoterm = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairIncoterm), null); };
+  R.resolverVessel = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairVessel), null); };
+  R.resolverVoyage = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairVoyage), null); };
+  R.resolverArmador = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairArmador), null); };
+  R.resolverETD = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairETD), null); };
+  R.resolverETA = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairETA), null); };
+  R.resolverDataEmbarque = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairDataEmbarque), null); };
+  R.resolverSafra = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairSafra), null); };
+  R.resolverTermoPagamento = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairTermoPagamento), null); };
+  R.resolverValorUnitario = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairValorUnitario), null); };
+  R.resolverValorTotal = function (unidades) { return resolverCampo_(unidades, adaptador_(TrackingFTR.Extract.extrairValorTotal), null); };
 
   R.resolverContainers = function (unidades) {
     return resolverCampo_(unidades, function (u) {
-      const r = E.extrairContainers(u.texto);
+      const r = TrackingFTR.Extract.extrairContainers(u.texto);
       if (!r) return null;
-      return { valorBruto: (r.quantidade || '') + ' / ' + r.numeros.join(','), valorNormalizado: r.numeros.join(','), regra: r.regra, evidencia: SEC.mascararEvidencia(r.numeros.join(', ')), quantidade: r.quantidade, numeros: r.numeros };
+      return { valorBruto: (r.quantidade || '') + ' / ' + r.numeros.join(','), valorNormalizado: r.numeros.join(','), regra: r.regra, evidencia: TrackingFTR.Security.mascararEvidencia(r.numeros.join(', ')), quantidade: r.quantidade, numeros: r.numeros };
     }, null);
   };
 
@@ -265,19 +265,19 @@ TrackingFTR.Resolver = {};
   // genérico de hierarquia documental.
   R.resolverExportador = function (unidades) {
     const porAtaque = unidades.filter(function (u) { return u.origem === 'ATTACHMENT'; })
-      .map(function (u) { return { u: u, r: E.extrairExportadorDeCorpo(u.texto) }; })
+      .map(function (u) { return { u: u, r: TrackingFTR.Extract.extrairExportadorDeCorpo(u.texto) }; })
       .filter(function (x) { return x.r; })
       .sort(function (a, b) { return b.u.dataMensagem - a.u.dataMensagem; });
     if (porAtaque.length) return montarResultadoSimples_(porAtaque[0].u, porAtaque[0].r, 'ALTA');
 
     const subjectRecente = unidades.filter(function (u) { return u.origem === 'SUBJECT'; }).sort(function (a, b) { return b.dataMensagem - a.dataMensagem; })[0];
     if (subjectRecente) {
-      const nome = E.extrairExportadorDoAssunto(subjectRecente.texto);
-      if (nome) return montarResultadoSimples_(subjectRecente, { valorBruto: nome, regra: 'assunto_padrao_x', evidencia: SEC.mascararEvidencia(subjectRecente.texto) }, 'MEDIA');
+      const nome = TrackingFTR.Extract.extrairExportadorDoAssunto(subjectRecente.texto);
+      if (nome) return montarResultadoSimples_(subjectRecente, { valorBruto: nome, regra: 'assunto_padrao_x', evidencia: TrackingFTR.Security.mascararEvidencia(subjectRecente.texto) }, 'MEDIA');
     }
 
     const corpo = unidades.filter(function (u) { return u.origem === 'BODY_PLAIN'; })
-      .map(function (u) { return { u: u, r: E.extrairExportadorDeCorpo(u.texto) }; })
+      .map(function (u) { return { u: u, r: TrackingFTR.Extract.extrairExportadorDeCorpo(u.texto) }; })
       .filter(function (x) { return x.r; })
       .sort(function (a, b) { return b.u.dataMensagem - a.u.dataMensagem; });
     if (corpo.length) return montarResultadoSimples_(corpo[0].u, corpo[0].r, 'MEDIA');
@@ -292,15 +292,15 @@ TrackingFTR.Resolver = {};
     }
 
     const porAtaque = unidades.filter(function (u) { return u.origem === 'ATTACHMENT'; })
-      .map(function (u) { return { u: u, r: E.extrairImportadorDeCorpo(u.texto) }; })
-      .filter(function (x) { return x.r && !E.ehIntermediario(x.r.valorBruto); })
+      .map(function (u) { return { u: u, r: TrackingFTR.Extract.extrairImportadorDeCorpo(u.texto) }; })
+      .filter(function (x) { return x.r && !TrackingFTR.Extract.ehIntermediario(x.r.valorBruto); })
       .sort(function (a, b) { return b.u.dataMensagem - a.u.dataMensagem; });
     if (porAtaque.length) return montarResultadoSimples_(porAtaque[0].u, porAtaque[0].r, 'ALTA');
 
     const subjectRecente = unidades.filter(function (u) { return u.origem === 'SUBJECT'; }).sort(function (a, b) { return b.dataMensagem - a.dataMensagem; })[0];
     if (subjectRecente) {
-      const nome = E.extrairImportadorDoAssunto(subjectRecente.texto);
-      if (nome && !E.ehIntermediario(nome)) return montarResultadoSimples_(subjectRecente, { valorBruto: nome, regra: 'assunto_padrao_x', evidencia: SEC.mascararEvidencia(subjectRecente.texto) }, 'MEDIA');
+      const nome = TrackingFTR.Extract.extrairImportadorDoAssunto(subjectRecente.texto);
+      if (nome && !TrackingFTR.Extract.ehIntermediario(nome)) return montarResultadoSimples_(subjectRecente, { valorBruto: nome, regra: 'assunto_padrao_x', evidencia: TrackingFTR.Security.mascararEvidencia(subjectRecente.texto) }, 'MEDIA');
     }
 
     return { vencedor: null, conflito: false, candidatos: [] };
@@ -308,7 +308,7 @@ TrackingFTR.Resolver = {};
 
   function montarResultadoSimples_(unidade, r, confianca) {
     const vencedor = {
-      valorBruto: r.valorBruto, valorNormalizado: E.aplicarNomeCanonico(E.normalizarNomeCliente(r.valorBruto)),
+      valorBruto: r.valorBruto, valorNormalizado: TrackingFTR.Extract.aplicarNomeCanonico(TrackingFTR.Extract.normalizarNomeCliente(r.valorBruto)),
       regraExtracao: r.regra, evidencia: r.evidencia, rank: 0, origem: unidade.origem, tipoDoc: unidade.tipoDoc,
       dataMensagem: unidade.dataMensagem, mensagemIdMascarado: unidade.mensagemIdMascarado,
       threadIdMascarado: unidade.threadIdMascarado, nomeArquivo: unidade.nomeArquivo, hash: unidade.hash,
@@ -323,7 +323,7 @@ TrackingFTR.Resolver = {};
   R.resolverProduto = function (unidades) {
     const subject = unidades.find(function (u) { return u.origem === 'SUBJECT'; });
     const corpo = unidades.find(function (u) { return u.origem === 'BODY_PLAIN'; });
-    const valor = E.extrairProduto(subject ? subject.texto : '', corpo ? corpo.texto : '');
+    const valor = TrackingFTR.Extract.extrairProduto(subject ? subject.texto : '', corpo ? corpo.texto : '');
     if (!valor) return { vencedor: null, conflito: false, candidatos: [] };
     const base = subject || corpo || unidades[0];
     return montarResultadoSimplesGenerico_(base, valor, 'produto_heuristico', 'MEDIA');
@@ -339,4 +339,4 @@ TrackingFTR.Resolver = {};
     return { vencedor: vencedor, conflito: false, candidatos: [vencedor] };
   }
 
-})(TrackingFTR.Resolver, TrackingFTR.Config, TrackingFTR.Security, TrackingFTR.Extract);
+})(TrackingFTR.Resolver);

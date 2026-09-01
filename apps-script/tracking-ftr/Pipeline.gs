@@ -13,19 +13,19 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.Pipeline = {};
 
-(function (PL, CFG, SEC, G, R, A, P) {
+(function (PL) {
 
   function criarDedupCache_() {
     const cache = CacheService.getScriptCache();
     return {
-      has: function (hash) { try { return !!cache.get(CFG.CACHE_PREFIX_HASH + hash); } catch (e) { return false; } },
-      add: function (hash) { try { cache.put(CFG.CACHE_PREFIX_HASH + hash, '1', CFG.CACHE_TTL_HASH_SEGUNDOS); } catch (e) { /* cache indisponível não é fatal */ } },
+      has: function (hash) { try { return !!cache.get(TrackingFTR.Config.CACHE_PREFIX_HASH + hash); } catch (e) { return false; } },
+      add: function (hash) { try { cache.put(TrackingFTR.Config.CACHE_PREFIX_HASH + hash, '1', TrackingFTR.Config.CACHE_TTL_HASH_SEGUNDOS); } catch (e) { /* cache indisponível não é fatal */ } },
     };
   }
 
   function lerCheckpoint_(watermarkAtual) {
     const props = PropertiesService.getScriptProperties();
-    const bruto = props.getProperty(CFG.PROP_CHECKPOINT);
+    const bruto = props.getProperty(TrackingFTR.Config.PROP_CHECKPOINT);
     if (!bruto) return { watermarkTs: watermarkAtual, threadsFeitas: [] };
     try {
       const obj = JSON.parse(bruto);
@@ -41,11 +41,11 @@ TrackingFTR.Pipeline = {};
     if (checkpoint.threadsFeitas.length > MAX_ITENS) {
       checkpoint.threadsFeitas = checkpoint.threadsFeitas.slice(-MAX_ITENS);
     }
-    PropertiesService.getScriptProperties().setProperty(CFG.PROP_CHECKPOINT, JSON.stringify(checkpoint));
+    PropertiesService.getScriptProperties().setProperty(TrackingFTR.Config.PROP_CHECKPOINT, JSON.stringify(checkpoint));
   }
 
   function limparCheckpoint_() {
-    PropertiesService.getScriptProperties().deleteProperty(CFG.PROP_CHECKPOINT);
+    PropertiesService.getScriptProperties().deleteProperty(TrackingFTR.Config.PROP_CHECKPOINT);
   }
 
   /**
@@ -53,38 +53,38 @@ TrackingFTR.Pipeline = {};
    * unidades de evidência já coletadas para a thread inteira.
    */
   function resolverCamposDoFtr_(unidades, ftr) {
-    const bookingResolvido = R.resolverBooking(unidades, ftr);
+    const bookingResolvido = TrackingFTR.Resolver.resolverBooking(unidades, ftr);
     return {
-      invoice: R.resolverInvoice(unidades, ftr),
-      exportador: R.resolverExportador(unidades),
+      invoice: TrackingFTR.Resolver.resolverInvoice(unidades, ftr),
+      exportador: TrackingFTR.Resolver.resolverExportador(unidades),
       importador: null, // preenchido pelo chamador (depende da label do organizador)
-      produto: R.resolverProduto(unidades),
-      portoOrigem: R.resolverPortoOrigem(unidades),
-      portoDestino: R.resolverPortoDestino(unidades),
-      placeOfReceipt: R.resolverPlaceOfReceipt(unidades),
-      placeOfDelivery: R.resolverPlaceOfDelivery(unidades),
-      incoterm: R.resolverIncoterm(unidades),
-      safra: R.resolverSafra(unidades),
-      mt: R.resolverMT(unidades),
-      termoPagamento: R.resolverTermoPagamento(unidades),
-      valorUnitario: R.resolverValorUnitario(unidades),
-      valorTotal: R.resolverValorTotal(unidades),
-      dataEmbarque: R.resolverDataEmbarque(unidades),
+      produto: TrackingFTR.Resolver.resolverProduto(unidades),
+      portoOrigem: TrackingFTR.Resolver.resolverPortoOrigem(unidades),
+      portoDestino: TrackingFTR.Resolver.resolverPortoDestino(unidades),
+      placeOfReceipt: TrackingFTR.Resolver.resolverPlaceOfReceipt(unidades),
+      placeOfDelivery: TrackingFTR.Resolver.resolverPlaceOfDelivery(unidades),
+      incoterm: TrackingFTR.Resolver.resolverIncoterm(unidades),
+      safra: TrackingFTR.Resolver.resolverSafra(unidades),
+      mt: TrackingFTR.Resolver.resolverMT(unidades),
+      termoPagamento: TrackingFTR.Resolver.resolverTermoPagamento(unidades),
+      valorUnitario: TrackingFTR.Resolver.resolverValorUnitario(unidades),
+      valorTotal: TrackingFTR.Resolver.resolverValorTotal(unidades),
+      dataEmbarque: TrackingFTR.Resolver.resolverDataEmbarque(unidades),
       booking: bookingResolvido,
-      bl: R.resolverBL(unidades, bookingResolvido),
-      etd: R.resolverETD(unidades),
-      eta: R.resolverETA(unidades),
-      vessel: R.resolverVessel(unidades),
-      voyage: R.resolverVoyage(unidades),
-      armador: R.resolverArmador(unidades),
-      containers: R.resolverContainers(unidades),
+      bl: TrackingFTR.Resolver.resolverBL(unidades, bookingResolvido),
+      etd: TrackingFTR.Resolver.resolverETD(unidades),
+      eta: TrackingFTR.Resolver.resolverETA(unidades),
+      vessel: TrackingFTR.Resolver.resolverVessel(unidades),
+      voyage: TrackingFTR.Resolver.resolverVoyage(unidades),
+      armador: TrackingFTR.Resolver.resolverArmador(unidades),
+      containers: TrackingFTR.Resolver.resolverContainers(unidades),
     };
   }
 
   /**
    * Executa o pipeline completo. `opcoes`:
    *   dryRun (bool)            — não grava nada, só devolve o relatório;
-   *   maxThreads (number)      — override de CFG.MAX_THREADS_POR_EXECUCAO;
+   *   maxThreads (number)      — override de TrackingFTR.Config.MAX_THREADS_POR_EXECUCAO;
    *   threadIds (string[])     — processa só estas threads (uso em teste);
    *   silencioso (bool)        — suprime logs de progresso (usado por diagnóstico).
    */
@@ -97,17 +97,17 @@ TrackingFTR.Pipeline = {};
       novasLinhas: 0, watermarkAvancado: false, execucaoCompleta: false, avisos: [],
     };
 
-    if (!A.driveAvancadoDisponivel()) {
+    if (!TrackingFTR.Attach.driveAvancadoDisponivel()) {
       relatorio.avisos.push('Serviço avançado "Drive API" não está habilitado — PDFs/imagens escaneados não serão OCRizados nesta execução (ver instruções de ativação).');
-      SEC.logWarn('Pipeline: Drive API (serviço avançado) indisponível — degradando sem OCR.');
+      TrackingFTR.Security.logWarn('Pipeline: Drive API (serviço avançado) indisponível — degradando sem OCR.');
     }
 
     let sheetInfo, folder;
     try {
-      sheetInfo = P.abrirPlanilha();
-      folder = A.obterPastaTemp();
+      sheetInfo = TrackingFTR.Persistence.abrirPlanilha();
+      folder = TrackingFTR.Attach.obterPastaTemp();
     } catch (e) {
-      SEC.logErro('Pipeline: ABORTADO por configuração insegura ou inacessível — ' + SEC.mascararEvidencia(e.message, 200));
+      TrackingFTR.Security.logErro('Pipeline: ABORTADO por configuração insegura ou inacessível — ' + TrackingFTR.Security.mascararEvidencia(e.message, 200));
       relatorio.erroCritico = 'config_insegura_ou_inacessivel';
       return relatorio;
     }
@@ -115,10 +115,10 @@ TrackingFTR.Pipeline = {};
     const colInfo = SM_mapearColunasSeguro_(sheetInfo.sheet);
     const colMap = colInfo.mapa;
     const ultimaColuna = colInfo.ultimaColunaAposCriacao;
-    const indice = P.construirIndice(sheetInfo.sheet, colMap);
+    const indice = TrackingFTR.Persistence.construirIndice(sheetInfo.sheet, colMap);
 
-    const query = opt.threadIds ? null : G.montarQueryComWatermark();
-    const watermarkAtualTs = (G.obterWatermark() || new Date(0)).getTime();
+    const query = opt.threadIds ? null : TrackingFTR.Gmail.montarQueryComWatermark();
+    const watermarkAtualTs = (TrackingFTR.Gmail.obterWatermark() || new Date(0)).getTime();
     const checkpoint = lerCheckpoint_(watermarkAtualTs);
     const jaFeitas = new Set(checkpoint.threadsFeitas);
 
@@ -126,20 +126,20 @@ TrackingFTR.Pipeline = {};
     if (opt.threadIds) {
       threads = opt.threadIds.map(function (id) { return GmailApp.getThreadById(id); }).filter(Boolean);
     } else {
-      threads = GmailApp.search(query, 0, opt.maxThreads || CFG.MAX_THREADS_POR_EXECUCAO);
-      if (!opt.silencioso) SEC.logInfo('Pipeline: query="' + query + '" — threads=' + threads.length);
-      if (threads.length === (opt.maxThreads || CFG.MAX_THREADS_POR_EXECUCAO)) {
+      threads = GmailApp.search(query, 0, opt.maxThreads || TrackingFTR.Config.MAX_THREADS_POR_EXECUCAO);
+      if (!opt.silencioso) TrackingFTR.Security.logInfo('Pipeline: query="' + query + '" — threads=' + threads.length);
+      if (threads.length === (opt.maxThreads || TrackingFTR.Config.MAX_THREADS_POR_EXECUCAO)) {
         relatorio.avisos.push('Atingiu o limite de threads por execução — pode haver threads fora desta busca. A próxima execução continua a partir do checkpoint.');
       }
     }
     relatorio.threadsEncontradas = threads.length;
 
-    const orcamentoOcr = { restantes: CFG.MAX_OPERACOES_OCR_POR_EXECUCAO };
+    const orcamentoOcr = { restantes: TrackingFTR.Config.MAX_OPERACOES_OCR_POR_EXECUCAO };
     const dedupCache = criarDedupCache_();
-    const registroTemp = A.novoRegistroTemp();
+    const registroTemp = TrackingFTR.Attach.novoRegistroTemp();
 
     const inicioMs = Date.now();
-    const limiteMs = (CFG.LIMITE_SEGUNDOS_EXECUCAO - CFG.MARGEM_SEGURANCA_SEGUNDOS) * 1000;
+    const limiteMs = (TrackingFTR.Config.LIMITE_SEGUNDOS_EXECUCAO - TrackingFTR.Config.MARGEM_SEGURANCA_SEGUNDOS) * 1000;
 
     const acumuladoPorFtr = new Map(); // ftr -> { resultado, unidades }
     let truncado = false;
@@ -149,24 +149,24 @@ TrackingFTR.Pipeline = {};
         if (Date.now() - inicioMs > limiteMs) { truncado = true; break; }
 
         const thread = threads[i];
-        const threadIdMascarado = SEC.idMascarado(thread.getId());
+        const threadIdMascarado = TrackingFTR.Security.idMascarado(thread.getId());
         if (jaFeitas.has(threadIdMascarado)) continue;
 
         try {
           const mensagens = thread.getMessages();
-          if (!G.threadEhRelevante(thread, mensagens)) {
+          if (!TrackingFTR.Gmail.threadEhRelevante(thread, mensagens)) {
             relatorio.threadsFiltradas++;
             jaFeitas.add(threadIdMascarado);
             continue;
           }
 
-          const coleta = R.coletarUnidades(thread, mensagens, folder, registroTemp, orcamentoOcr, dedupCache);
+          const coleta = TrackingFTR.Resolver.coletarUnidades(thread, mensagens, folder, registroTemp, orcamentoOcr, dedupCache);
           const unidades = coleta.unidades;
 
-          const resolucaoFtr = R.resolverFTR(unidades);
+          const resolucaoFtr = TrackingFTR.Resolver.resolverFTR(unidades);
           if (resolucaoFtr.ambiguo) {
             relatorio.threadsAmbiguas++;
-            SEC.logWarn('Pipeline: thread ' + SEC.mascarar(threadIdMascarado, 4, 4) + ' com FTR ambíguo — não associada. ' + resolucaoFtr.motivo);
+            TrackingFTR.Security.logWarn('Pipeline: thread ' + TrackingFTR.Security.mascarar(threadIdMascarado, 4, 4) + ' com FTR ambíguo — não associada. ' + resolucaoFtr.motivo);
             jaFeitas.add(threadIdMascarado);
             continue;
           }
@@ -177,11 +177,11 @@ TrackingFTR.Pipeline = {};
           }
 
           const ftr = resolucaoFtr.ftr;
-          const labelsCliente = G.obterLabelsCliente(thread);
-          const clienteDaLabel = G.extrairNomeClienteDeLabels(labelsCliente);
+          const labelsCliente = TrackingFTR.Gmail.obterLabelsCliente(thread);
+          const clienteDaLabel = TrackingFTR.Gmail.extrairNomeClienteDeLabels(labelsCliente);
 
           const campos = resolverCamposDoFtr_(unidades, ftr);
-          campos.importador = R.resolverImportador(unidades, TrackingFTR.Extract.aplicarNomeCanonico(clienteDaLabel));
+          campos.importador = TrackingFTR.Resolver.resolverImportador(unidades, TrackingFTR.Extract.aplicarNomeCanonico(clienteDaLabel));
           if (campos.exportador && campos.exportador.vencedor) {
             campos.exportador.vencedor.valorNormalizado = TrackingFTR.Extract.aplicarNomeCanonico(campos.exportador.vencedor.valorNormalizado);
           }
@@ -198,16 +198,16 @@ TrackingFTR.Pipeline = {};
           jaFeitas.add(threadIdMascarado);
         } catch (eThread) {
           relatorio.threadsComErro++;
-          SEC.logErroSeguro('Pipeline: erro processando thread', eThread);
+          TrackingFTR.Security.logErroSeguro('Pipeline: erro processando thread', eThread);
           jaFeitas.add(threadIdMascarado); // evita loop infinito reprocessando uma thread quebrada
         }
       }
     } finally {
-      A.limparRegistroTemp(registroTemp);
+      TrackingFTR.Attach.limparRegistroTemp(registroTemp);
       try {
         PropertiesService.getScriptProperties().setProperty('TRACKING_FTR_ULTIMO_USO_OCR', JSON.stringify({
-          usadas: CFG.MAX_OPERACOES_OCR_POR_EXECUCAO - orcamentoOcr.restantes,
-          limite: CFG.MAX_OPERACOES_OCR_POR_EXECUCAO,
+          usadas: TrackingFTR.Config.MAX_OPERACOES_OCR_POR_EXECUCAO - orcamentoOcr.restantes,
+          limite: TrackingFTR.Config.MAX_OPERACOES_OCR_POR_EXECUCAO,
           em: new Date().toISOString(),
         }));
       } catch (eProp) { /* não crítico */ }
@@ -229,21 +229,21 @@ TrackingFTR.Pipeline = {};
         ? sheetInfo.sheet.getRange(linhaExistente, 1, 1, ultimaColunaAtual).getValues()[0]
         : new Array(ultimaColunaAtual).fill('');
 
-      const montado = P.montarAtualizacao(resultado, colMap, indice, valoresAtuais, execucaoId);
+      const montado = TrackingFTR.Persistence.montarAtualizacao(resultado, colMap, indice, valoresAtuais, execucaoId);
       todasLogEntradas.push.apply(todasLogEntradas, montado.logEntradas);
 
       relatorio.ftrsResolvidos.push({
-        ftr: SEC.mascarar(ftr, 3, 2), novaLinha: !linhaExistente, temConflito: montado.temConflito,
+        ftr: TrackingFTR.Security.mascarar(ftr, 3, 2), novaLinha: !linhaExistente, temConflito: montado.temConflito,
         algumaGravacao: montado.algumaGravacao, camposGravados: Object.keys(montado.valoresPorColuna).length,
       });
 
       if (opt.dryRun) continue;
 
       if (linhaExistente) {
-        const mudou = P.aplicarNaLinha(sheetInfo.sheet, linhaExistente, ultimaColunaAtual, montado.valoresPorColuna);
+        const mudou = TrackingFTR.Persistence.aplicarNaLinha(sheetInfo.sheet, linhaExistente, ultimaColunaAtual, montado.valoresPorColuna);
         if (mudou) relatorio.updates++;
       } else {
-        const novaLinha = P.adicionarNovaLinha(sheetInfo.sheet, ultimaColunaAtual, colMap, montado.valoresPorColuna, TrackingFTR.Extract.formatarFTRParaGravar(ftr));
+        const novaLinha = TrackingFTR.Persistence.adicionarNovaLinha(sheetInfo.sheet, ultimaColunaAtual, colMap, montado.valoresPorColuna, TrackingFTR.Extract.formatarFTRParaGravar(ftr));
         indice.porFtr.set(ftr, novaLinha);
         relatorio.novasLinhas++;
       }
@@ -258,15 +258,15 @@ TrackingFTR.Pipeline = {};
     }
 
     if (!opt.dryRun && todasLogEntradas.length) {
-      const abaLog = P.abrirOuCriarAbaLog(sheetInfo.spreadsheet);
-      P.gravarLog(abaLog, todasLogEntradas);
+      const abaLog = TrackingFTR.Persistence.abrirOuCriarAbaLog(sheetInfo.spreadsheet);
+      TrackingFTR.Persistence.gravarLog(abaLog, todasLogEntradas);
     }
 
     relatorio.execucaoCompleta = !truncado;
     if (!opt.dryRun) {
       if (!truncado && !opt.threadIds) {
         limparCheckpoint_();
-        G.salvarWatermark(new Date());
+        TrackingFTR.Gmail.salvarWatermark(new Date());
         relatorio.watermarkAvancado = true;
       } else if (!opt.threadIds) {
         salvarCheckpoint_({ watermarkTs: watermarkAtualTs, threadsFeitas: Array.from(jaFeitas) });
@@ -281,4 +281,4 @@ TrackingFTR.Pipeline = {};
     return TrackingFTR.SheetMap.mapearColunas(sheet);
   }
 
-})(TrackingFTR.Pipeline, TrackingFTR.Config, TrackingFTR.Security, TrackingFTR.Gmail, TrackingFTR.Resolver, TrackingFTR.Attach, TrackingFTR.Persistence);
+})(TrackingFTR.Pipeline);

@@ -16,7 +16,7 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.Extract = {};
 
-(function (E, CFG, SEC) {
+(function (E) {
 
   // ==========================================================
   // HELPER GENÉRICO: valor próximo de um rótulo
@@ -47,7 +47,7 @@ TrackingFTR.Extract = {};
             melhor = {
               valorBruto: vm[1] !== undefined ? vm[1] : vm[0],
               regra: 'rotulo:' + rotulo,
-              evidencia: SEC.mascararEvidencia(texto.substring(inicioEvidencia, inicioJanela + dist)),
+              evidencia: TrackingFTR.Security.mascararEvidencia(texto.substring(inicioEvidencia, inicioJanela + dist)),
               distancia: distancia,
             };
           }
@@ -124,8 +124,8 @@ TrackingFTR.Extract = {};
   E.detectarIndicadorVersao = function (texto) {
     if (!texto) return 'ORIGINAL';
     const t = texto.toUpperCase();
-    for (let i = 0; i < CFG.INDICADORES_VERSAO.length; i++) {
-      if (t.indexOf(CFG.INDICADORES_VERSAO[i]) !== -1) return CFG.INDICADORES_VERSAO[i];
+    for (let i = 0; i < TrackingFTR.Config.INDICADORES_VERSAO.length; i++) {
+      if (t.indexOf(TrackingFTR.Config.INDICADORES_VERSAO[i]) !== -1) return TrackingFTR.Config.INDICADORES_VERSAO[i];
     }
     return 'ORIGINAL';
   };
@@ -184,10 +184,10 @@ TrackingFTR.Extract = {};
     const janela = texto.substring(0, 1200);
 
     let m = janela.match(/\(?(AM\d{2}\/\d{2}(?:-[A-Z])?)\)?/i);
-    if (m) return { valorBruto: m[1].toUpperCase(), regra: 'padrao_francfort_AMxx', evidencia: SEC.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 20)) };
+    if (m) return { valorBruto: m[1].toUpperCase(), regra: 'padrao_francfort_AMxx', evidencia: TrackingFTR.Security.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 20)) };
 
     m = janela.match(/INVOICE\s+(\d+\/\d{4})/i);
-    if (m && E.ehInvoiceValido(m[1], ftrDaMensagem)) return { valorBruto: m[1], regra: 'rotulo:INVOICE', evidencia: SEC.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 30)) };
+    if (m && E.ehInvoiceValido(m[1], ftrDaMensagem)) return { valorBruto: m[1], regra: 'rotulo:INVOICE', evidencia: TrackingFTR.Security.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 30)) };
 
     // Rótulos com uma palavra entre "INVOICE" e o número (o mais comum em
     // documentos reais: "INVOICE NUMBER:", "INVOICE NO.", "INVOICE Nº").
@@ -197,10 +197,10 @@ TrackingFTR.Extract = {};
     }
 
     m = janela.match(/INVOICE\s+([\d.\-\/]+)/i);
-    if (m && E.ehInvoiceValido(m[1], ftrDaMensagem)) return { valorBruto: m[1].trim(), regra: 'rotulo:INVOICE', evidencia: SEC.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 30)) };
+    if (m && E.ehInvoiceValido(m[1], ftrDaMensagem)) return { valorBruto: m[1].trim(), regra: 'rotulo:INVOICE', evidencia: TrackingFTR.Security.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 30)) };
 
     m = janela.match(/INV\.?\s*[#:]?\s*([\d.\-\/]+)/i);
-    if (m && E.ehInvoiceValido(m[1], ftrDaMensagem)) return { valorBruto: m[1].trim(), regra: 'rotulo:INV', evidencia: SEC.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 30)) };
+    if (m && E.ehInvoiceValido(m[1], ftrDaMensagem)) return { valorBruto: m[1].trim(), regra: 'rotulo:INV', evidencia: TrackingFTR.Security.mascararEvidencia(janela.substring(Math.max(0, m.index - 10), m.index + 30)) };
 
     return null;
   };
@@ -380,7 +380,7 @@ TrackingFTR.Extract = {};
           valorBruto: m[1] + ' ' + m[2],
           unidadeOriginal: m[2].toUpperCase(),
           rotulo: rotulo,
-          evidencia: SEC.mascararEvidencia(texto.substring(Math.max(0, m.index - 10), m.index + m[0].length + 10)),
+          evidencia: TrackingFTR.Security.mascararEvidencia(texto.substring(Math.max(0, m.index - 10), m.index + m[0].length + 10)),
         });
       }
     });
@@ -431,7 +431,7 @@ TrackingFTR.Extract = {};
       valorBruto: netWeight.length + ' itens somados',
       unidadeOriginal: 'MT (somado)',
       regra: 'soma_pesos_individuais',
-      evidencia: SEC.mascararEvidencia(netWeight.map(function (c) { return c.valorBruto; }).join('; ')),
+      evidencia: TrackingFTR.Security.mascararEvidencia(netWeight.map(function (c) { return c.valorBruto; }).join('; ')),
     };
   };
 
@@ -447,7 +447,7 @@ TrackingFTR.Extract = {};
     const re = new RegExp('\\b(' + INCOTERMS.join('|') + ')\\b', 'i');
     const m = texto.match(re);
     if (!m) return null;
-    return { valorBruto: m[1].toUpperCase(), regra: 'lista_incoterms', evidencia: SEC.mascararEvidencia(texto.substring(Math.max(0, m.index - 10), m.index + 30)) };
+    return { valorBruto: m[1].toUpperCase(), regra: 'lista_incoterms', evidencia: TrackingFTR.Security.mascararEvidencia(texto.substring(Math.max(0, m.index - 10), m.index + 30)) };
   };
 
   E.extrairVessel = function (texto) { return extrairPorRotulo_(texto, ['VESSEL', 'NAVIO'], /([A-ZÀ-Ú][\w À-ÿ\-]{1,30})/i, 30); };
@@ -462,7 +462,7 @@ TrackingFTR.Extract = {};
     for (let i = 0; i < ARMADORES_CONHECIDOS.length; i++) {
       const idx = tUpper.indexOf(ARMADORES_CONHECIDOS[i]);
       if (idx !== -1) {
-        return { valorBruto: ARMADORES_CONHECIDOS[i], regra: 'lista_armadores', evidencia: SEC.mascararEvidencia(texto.substring(Math.max(0, idx - 10), idx + 30)) };
+        return { valorBruto: ARMADORES_CONHECIDOS[i], regra: 'lista_armadores', evidencia: TrackingFTR.Security.mascararEvidencia(texto.substring(Math.max(0, idx - 10), idx + 30)) };
       }
     }
     return null;
@@ -527,7 +527,7 @@ TrackingFTR.Extract = {};
     if (!texto) return null;
     const m = texto.match(/\b(?:SAFRA|CROP)\s*[:\-]?\s*(\d{4}(?:\/\d{2,4})?)/i);
     if (!m) return null;
-    return { valorBruto: m[1], regra: 'rotulo:SAFRA/CROP', evidencia: SEC.mascararEvidencia(texto.substring(Math.max(0, m.index - 5), m.index + 20)) };
+    return { valorBruto: m[1], regra: 'rotulo:SAFRA/CROP', evidencia: TrackingFTR.Security.mascararEvidencia(texto.substring(Math.max(0, m.index - 5), m.index + 20)) };
   };
 
   const TERMOS_PAGAMENTO_CONHECIDOS = ['CAD', 'L/C', 'LC AT SIGHT', 'IRREVOCABLE L/C', 'T/T', 'TT', 'ADVANCE PAYMENT', 'SIGHT', 'OPEN ACCOUNT', 'D/P', 'D/A'];
@@ -538,7 +538,7 @@ TrackingFTR.Extract = {};
     const tUpper = texto.toUpperCase();
     for (let i = 0; i < TERMOS_PAGAMENTO_CONHECIDOS.length; i++) {
       const idx = tUpper.indexOf(TERMOS_PAGAMENTO_CONHECIDOS[i]);
-      if (idx !== -1) return { valorBruto: TERMOS_PAGAMENTO_CONHECIDOS[i], regra: 'lista_termos_pagamento', evidencia: SEC.mascararEvidencia(texto.substring(Math.max(0, idx - 10), idx + 30)) };
+      if (idx !== -1) return { valorBruto: TERMOS_PAGAMENTO_CONHECIDOS[i], regra: 'lista_termos_pagamento', evidencia: TrackingFTR.Security.mascararEvidencia(texto.substring(Math.max(0, idx - 10), idx + 30)) };
     }
     return null;
   };
@@ -621,7 +621,7 @@ TrackingFTR.Extract = {};
   E.ehIntermediario = function (candidato) {
     if (!candidato) return false;
     const upper = removerAcentos_(candidato.toUpperCase().trim());
-    return CFG.INTERMEDIARIOS.some(function (c) {
+    return TrackingFTR.Config.INTERMEDIARIOS.some(function (c) {
       const cn = removerAcentos_(c.toUpperCase());
       return upper === cn || upper.indexOf(cn) !== -1;
     });
@@ -637,7 +637,7 @@ TrackingFTR.Extract = {};
   E.aplicarNomeCanonico = function (nome) {
     if (!nome) return nome;
     const chave = removerAcentos_(nome.toUpperCase().trim()).replace(/\s+/g, ' ');
-    return CFG.MAPA_CANONICO[chave] || nome;
+    return TrackingFTR.Config.MAPA_CANONICO[chave] || nome;
   };
 
-})(TrackingFTR.Extract, TrackingFTR.Config, TrackingFTR.Security);
+})(TrackingFTR.Extract);

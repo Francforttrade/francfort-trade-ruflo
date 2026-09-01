@@ -12,7 +12,7 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.Gmail = {};
 
-(function (G, CFG, SEC) {
+(function (G) {
 
   // ==========================================================
   // WATERMARK
@@ -20,34 +20,34 @@ TrackingFTR.Gmail = {};
 
   G.montarQueryComWatermark = function () {
     const props = PropertiesService.getScriptProperties();
-    const salvo = props.getProperty(CFG.PROP_WATERMARK);
-    const base = 'label:' + CFG.LABEL_PROCESSADO;
+    const salvo = props.getProperty(TrackingFTR.Config.PROP_WATERMARK);
+    const base = 'label:' + TrackingFTR.Config.LABEL_PROCESSADO;
 
     if (!salvo) {
-      SEC.logInfo('GmailSource: sem watermark salvo — janela padrão de ' + CFG.DIAS_BUSCA_PADRAO + ' dias.');
-      return base + ' newer_than:' + CFG.DIAS_BUSCA_PADRAO + 'd';
+      TrackingFTR.Security.logInfo('GmailSource: sem watermark salvo — janela padrão de ' + TrackingFTR.Config.DIAS_BUSCA_PADRAO + ' dias.');
+      return base + ' newer_than:' + TrackingFTR.Config.DIAS_BUSCA_PADRAO + 'd';
     }
 
     const ts = parseInt(salvo, 10);
     if (isNaN(ts)) {
-      SEC.logWarn('GmailSource: watermark inválido — caindo para janela padrão.');
-      return base + ' newer_than:' + CFG.DIAS_BUSCA_PADRAO + 'd';
+      TrackingFTR.Security.logWarn('GmailSource: watermark inválido — caindo para janela padrão.');
+      return base + ' newer_than:' + TrackingFTR.Config.DIAS_BUSCA_PADRAO + 'd';
     }
 
-    const comFolga = new Date(ts - CFG.FOLGA_WATERMARK_DIAS * 24 * 60 * 60 * 1000);
+    const comFolga = new Date(ts - TrackingFTR.Config.FOLGA_WATERMARK_DIAS * 24 * 60 * 60 * 1000);
     return base + ' after:' + formatarDataGmail_(comFolga);
   };
 
   G.salvarWatermark = function (dataExecucao) {
-    PropertiesService.getScriptProperties().setProperty(CFG.PROP_WATERMARK, dataExecucao.getTime().toString());
+    PropertiesService.getScriptProperties().setProperty(TrackingFTR.Config.PROP_WATERMARK, dataExecucao.getTime().toString());
   };
 
   G.resetarWatermark = function () {
-    PropertiesService.getScriptProperties().deleteProperty(CFG.PROP_WATERMARK);
+    PropertiesService.getScriptProperties().deleteProperty(TrackingFTR.Config.PROP_WATERMARK);
   };
 
   G.obterWatermark = function () {
-    const v = PropertiesService.getScriptProperties().getProperty(CFG.PROP_WATERMARK);
+    const v = PropertiesService.getScriptProperties().getProperty(TrackingFTR.Config.PROP_WATERMARK);
     return v ? new Date(parseInt(v, 10)) : null;
   };
 
@@ -74,15 +74,15 @@ TrackingFTR.Gmail = {};
       const anexos = mensagens[i].getAttachments({ includeInlineImages: false });
       for (let j = 0; j < anexos.length; j++) {
         const nome = (anexos[j].getName() || '').toLowerCase();
-        if (CFG.EXTENSOES_ANEXO.some(function (ext) { return nome.endsWith(ext); })) {
+        if (TrackingFTR.Config.EXTENSOES_ANEXO.some(function (ext) { return nome.endsWith(ext); })) {
           return true;
         }
       }
     }
 
     const assunto = (thread.getFirstMessageSubject() || '').toUpperCase();
-    for (let k = 0; k < CFG.KEYWORDS_DOC_OFICIAL.length; k++) {
-      if (assunto.indexOf(CFG.KEYWORDS_DOC_OFICIAL[k].toUpperCase()) !== -1) return true;
+    for (let k = 0; k < TrackingFTR.Config.KEYWORDS_DOC_OFICIAL.length; k++) {
+      if (assunto.indexOf(TrackingFTR.Config.KEYWORDS_DOC_OFICIAL[k].toUpperCase()) !== -1) return true;
     }
     return false;
   };
@@ -145,7 +145,7 @@ TrackingFTR.Gmail = {};
   G.extrairNomeClienteDeLabels = function (labelsCliente) {
     if (!labelsCliente || !labelsCliente.length) return '';
     if (labelsCliente.length > 1) {
-      SEC.logWarn('GmailSource: thread com múltiplas labels de cliente (' + labelsCliente.length + '). Usando a primeira.');
+      TrackingFTR.Security.logWarn('GmailSource: thread com múltiplas labels de cliente (' + labelsCliente.length + '). Usando a primeira.');
     }
     const nomeRaw = labelsCliente[0].split('/')[0];
     return TrackingFTR.Extract.normalizarNomeCliente(nomeRaw);
@@ -155,4 +155,4 @@ TrackingFTR.Gmail = {};
     return thread.getLabels().map(function (l) { return l.getName(); });
   };
 
-})(TrackingFTR.Gmail, TrackingFTR.Config, TrackingFTR.Security);
+})(TrackingFTR.Gmail);

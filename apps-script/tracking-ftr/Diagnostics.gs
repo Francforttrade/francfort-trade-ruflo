@@ -13,7 +13,7 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.Diag = {};
 
-(function (D, CFG, SEC) {
+(function (D) {
 
   // ==========================================================
   // 0) PADRONIZAÇÃO DA COLUNA FTR (mantido do indexador original —
@@ -29,7 +29,7 @@ TrackingFTR.Diag = {};
     try {
       sheetInfo = TrackingFTR.Persistence.abrirPlanilha();
     } catch (e) {
-      SEC.logErroSeguro('Diagnostics: não foi possível abrir a planilha com segurança', e);
+      TrackingFTR.Security.logErroSeguro('Diagnostics: não foi possível abrir a planilha com segurança', e);
       return;
     }
     const colInfo = TrackingFTR.SheetMap.mapearColunas(sheetInfo.sheet);
@@ -37,9 +37,9 @@ TrackingFTR.Diag = {};
 
     const sheet = sheetInfo.sheet;
     const ultimaLinha = sheet.getLastRow();
-    if (ultimaLinha < CFG.LINHA_INICIAL) { console.log('Planilha vazia.'); return; }
+    if (ultimaLinha < TrackingFTR.Config.LINHA_INICIAL) { console.log('Planilha vazia.'); return; }
 
-    const range = sheet.getRange(CFG.LINHA_INICIAL, colInfo.mapa.FTR, ultimaLinha - CFG.LINHA_INICIAL + 1, 1);
+    const range = sheet.getRange(TrackingFTR.Config.LINHA_INICIAL, colInfo.mapa.FTR, ultimaLinha - TrackingFTR.Config.LINHA_INICIAL + 1, 1);
     const valores = range.getValues();
 
     let semFtr = 0, jaCorretos = 0, aPadronizar = 0, invalidos = 0;
@@ -79,7 +79,7 @@ TrackingFTR.Diag = {};
     try {
       sheetInfo = TrackingFTR.Persistence.abrirPlanilha();
     } catch (e) {
-      SEC.logErroSeguro('Diagnostics: não foi possível abrir a planilha com segurança', e);
+      TrackingFTR.Security.logErroSeguro('Diagnostics: não foi possível abrir a planilha com segurança', e);
       return;
     }
     const colInfo = TrackingFTR.SheetMap.mapearColunas(sheetInfo.sheet);
@@ -143,7 +143,7 @@ TrackingFTR.Diag = {};
     try {
       msg = GmailApp.getMessageById(messageId);
     } catch (e) {
-      SEC.logErroSeguro('Diagnostics: mensagem não encontrada/acessível', e);
+      TrackingFTR.Security.logErroSeguro('Diagnostics: mensagem não encontrada/acessível', e);
       return;
     }
 
@@ -159,12 +159,12 @@ TrackingFTR.Diag = {};
       const resultado = TrackingFTR.Attach.processarAnexo(anexos[idx], folder, registro, orcamento);
       const classif = resultado.ok && resultado.texto ? TrackingFTR.Extract.classificarDocumento(resultado.texto, (anexos[idx].getName() || '').toLowerCase()) : { tipo: 'N/A', pontuacao: 0 };
 
-      console.log('  Nome mascarado: ' + SEC.mascararNomeArquivo(anexos[idx].getName()));
+      console.log('  Nome mascarado: ' + TrackingFTR.Security.mascararNomeArquivo(anexos[idx].getName()));
       console.log('  Tipo interno: ' + resultado.tipoInterno);
       console.log('  OK: ' + resultado.ok + (resultado.motivoRejeicao ? (' | motivo rejeição: ' + resultado.motivoRejeicao) : ''));
       console.log('  Via OCR: ' + resultado.viaOcr + (resultado.idioma ? (' (idioma: ' + resultado.idioma + ')') : ''));
       console.log('  Tipo documental classificado: ' + classif.tipo + ' (pontuação ' + classif.pontuacao + ')');
-      console.log('  Evidência mínima (mascarada): ' + SEC.mascararEvidencia(resultado.texto || '', 100));
+      console.log('  Evidência mínima (mascarada): ' + TrackingFTR.Security.mascararEvidencia(resultado.texto || '', 100));
       console.log('  Hash do anexo (dedup, não é o conteúdo): ' + (resultado.hash ? resultado.hash.substring(0, 16) + '…' : '(n/a)'));
       console.log('✓ Nenhum arquivo original foi alterado. Temporários desta chamada serão removidos agora.');
       return resultado;
@@ -181,8 +181,8 @@ TrackingFTR.Diag = {};
     const ftrNorm = TrackingFTR.Extract.normalizarFTR(ftrTexto || '');
     if (!ftrNorm) { console.error('FTR inválido: "' + ftrTexto + '"'); return; }
 
-    console.log('=== TrackingFTR — REPROCESSAR FTR ' + SEC.mascarar(ftrNorm, 3, 2) + ' (' + (confirmarGravacao ? 'GRAVAÇÃO REAL' : 'DRY-RUN') + ') ===');
-    const query = 'label:' + CFG.LABEL_PROCESSADO + ' "FTR ' + ftrNorm + '"';
+    console.log('=== TrackingFTR — REPROCESSAR FTR ' + TrackingFTR.Security.mascarar(ftrNorm, 3, 2) + ' (' + (confirmarGravacao ? 'GRAVAÇÃO REAL' : 'DRY-RUN') + ') ===');
+    const query = 'label:' + TrackingFTR.Config.LABEL_PROCESSADO + ' "FTR ' + ftrNorm + '"';
     const threads = GmailApp.search(query, 0, 20);
     console.log('Threads encontradas para este FTR: ' + threads.length);
     if (!threads.length) return;
@@ -195,8 +195,8 @@ TrackingFTR.Diag = {};
 
   D.reprocessarPeriodo = function (dias, confirmarGravacao) {
     console.log('=== TrackingFTR — REPROCESSAR PERÍODO (' + dias + ' dias, ' + (confirmarGravacao ? 'GRAVAÇÃO REAL' : 'DRY-RUN') + ') ===');
-    const query = 'label:' + CFG.LABEL_PROCESSADO + ' newer_than:' + dias + 'd';
-    const threads = GmailApp.search(query, 0, CFG.MAX_THREADS_POR_EXECUCAO);
+    const query = 'label:' + TrackingFTR.Config.LABEL_PROCESSADO + ' newer_than:' + dias + 'd';
+    const threads = GmailApp.search(query, 0, TrackingFTR.Config.MAX_THREADS_POR_EXECUCAO);
     console.log('Threads encontradas: ' + threads.length);
     const relatorio = executarComLockSeGravando_(confirmarGravacao, threads);
     imprimirRelatorio_(relatorio);
@@ -219,7 +219,7 @@ TrackingFTR.Diag = {};
 
   D.resetarWatermark = function () {
     TrackingFTR.Gmail.resetarWatermark();
-    console.log('✓ Watermark removido. Próxima execução real usa a janela padrão de ' + CFG.DIAS_BUSCA_PADRAO + ' dias.');
+    console.log('✓ Watermark removido. Próxima execução real usa a janela padrão de ' + TrackingFTR.Config.DIAS_BUSCA_PADRAO + ' dias.');
   };
 
   // ==========================================================
@@ -228,7 +228,7 @@ TrackingFTR.Diag = {};
 
   D.exibirFilaOcr = function () {
     console.log('=== TrackingFTR — ESTADO DO ORÇAMENTO DE OCR ===');
-    console.log('Limite por execução: ' + CFG.MAX_OPERACOES_OCR_POR_EXECUCAO + ' operações.');
+    console.log('Limite por execução: ' + TrackingFTR.Config.MAX_OPERACOES_OCR_POR_EXECUCAO + ' operações.');
     const bruto = PropertiesService.getScriptProperties().getProperty('TRACKING_FTR_ULTIMO_USO_OCR');
     if (!bruto) { console.log('Nenhuma execução registrou uso de OCR ainda.'); return; }
     try {
@@ -251,14 +251,14 @@ TrackingFTR.Diag = {};
       TrackingFTR.Persistence.abrirPlanilha();
       console.log('Acesso à planilha de produção: OK.');
     } catch (e) {
-      console.log('Acesso à planilha de produção: FALHOU — ' + SEC.mascararEvidencia(e.message, 150));
+      console.log('Acesso à planilha de produção: FALHOU — ' + TrackingFTR.Security.mascararEvidencia(e.message, 150));
     }
 
     try {
       TrackingFTR.Attach.obterPastaTemp();
       console.log('Acesso/validação da pasta temporária: OK.');
     } catch (e) {
-      console.log('Acesso/validação da pasta temporária: FALHOU — ' + SEC.mascararEvidencia(e.message, 150));
+      console.log('Acesso/validação da pasta temporária: FALHOU — ' + TrackingFTR.Security.mascararEvidencia(e.message, 150));
     }
 
     const acionadores = ScriptApp.getProjectTriggers();
@@ -275,19 +275,19 @@ TrackingFTR.Diag = {};
   D.validarCompartilhamentosInseguros = function () {
     console.log('=== TrackingFTR — VALIDAÇÃO DE COMPARTILHAMENTOS ===');
     try {
-      const ss = SpreadsheetApp.openById(CFG.PLANILHA_ID);
-      const r1 = SEC.validarCompartilhamentoPlanilha(ss);
+      const ss = SpreadsheetApp.openById(TrackingFTR.Config.PLANILHA_ID);
+      const r1 = TrackingFTR.Security.validarCompartilhamentoPlanilha(ss);
       console.log('Planilha: ' + (r1.seguro ? 'OK (não publicada / não pública).' : 'INSEGURO — ' + r1.motivo));
     } catch (e) {
-      console.log('Planilha: não foi possível validar — ' + SEC.mascararEvidencia(e.message, 150));
+      console.log('Planilha: não foi possível validar — ' + TrackingFTR.Security.mascararEvidencia(e.message, 150));
     }
 
     try {
       const folder = TrackingFTR.Attach.obterPastaTemp();
-      const r2 = SEC.validarPastaTemp(folder);
+      const r2 = TrackingFTR.Security.validarPastaTemp(folder);
       console.log('Pasta temporária: ' + (r2.seguro ? 'OK (não compartilhada).' : 'INSEGURO — ' + r2.motivo));
     } catch (e) {
-      console.log('Pasta temporária: ' + SEC.mascararEvidencia(e.message, 150));
+      console.log('Pasta temporária: ' + TrackingFTR.Security.mascararEvidencia(e.message, 150));
     }
   };
 
@@ -309,20 +309,20 @@ TrackingFTR.Diag = {};
     try {
       sheetInfo = TrackingFTR.Persistence.abrirPlanilha();
     } catch (e) {
-      console.log('FALHOU: ' + SEC.mascararEvidencia(e.message, 150));
+      console.log('FALHOU: ' + TrackingFTR.Security.mascararEvidencia(e.message, 150));
       return;
     }
     const file = DriveApp.getFileById(sheetInfo.spreadsheet.getId());
     console.log('Compartilhamento da planilha: ' + file.getSharingAccess() + ' / permissão: ' + file.getSharingPermission());
     console.log('Editores: ' + file.getEditors().length + ' | Visualizadores: ' + file.getViewers().length);
 
-    const abaLog = sheetInfo.spreadsheet.getSheetByName(CFG.ABA_LOG);
+    const abaLog = sheetInfo.spreadsheet.getSheetByName(TrackingFTR.Config.ABA_LOG);
     if (!abaLog) {
-      console.log('Aba ' + CFG.ABA_LOG + ' ainda não existe (será criada na primeira execução real).');
+      console.log('Aba ' + TrackingFTR.Config.ABA_LOG + ' ainda não existe (será criada na primeira execução real).');
       return;
     }
     const protecoes = abaLog.getProtections(SpreadsheetApp.ProtectionType.SHEET);
-    console.log('Aba ' + CFG.ABA_LOG + ' — proteções de aba configuradas: ' + protecoes.length + (protecoes.length ? '' : ' (recomenda-se proteger esta aba para administradores/revisores apenas).'));
+    console.log('Aba ' + TrackingFTR.Config.ABA_LOG + ' — proteções de aba configuradas: ' + protecoes.length + (protecoes.length ? '' : ' (recomenda-se proteger esta aba para administradores/revisores apenas).'));
   };
 
   /**
@@ -468,4 +468,4 @@ TrackingFTR.Diag = {};
     return { passou: passou, total: total };
   };
 
-})(TrackingFTR.Diag, TrackingFTR.Config, TrackingFTR.Security);
+})(TrackingFTR.Diag);

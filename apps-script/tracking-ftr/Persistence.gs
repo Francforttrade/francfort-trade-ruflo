@@ -14,30 +14,30 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.Persistence = {};
 
-(function (P, CFG, SEC, SM) {
+(function (P) {
 
   // ==========================================================
   // ABERTURA DA PLANILHA (com validação de compartilhamento)
   // ==========================================================
 
   P.abrirPlanilha = function () {
-    const ss = SpreadsheetApp.openById(CFG.PLANILHA_ID);
+    const ss = SpreadsheetApp.openById(TrackingFTR.Config.PLANILHA_ID);
 
-    const validacao = SEC.validarCompartilhamentoPlanilha(ss);
+    const validacao = TrackingFTR.Security.validarCompartilhamentoPlanilha(ss);
     if (!validacao.seguro) {
       throw new Error('CONFIG_INSEGURA: ' + validacao.motivo);
     }
 
-    const sheet = ss.getSheetByName(CFG.PLANILHA_ABA);
+    const sheet = ss.getSheetByName(TrackingFTR.Config.PLANILHA_ABA);
     if (!sheet) {
       const nomes = ss.getSheets().map(function (s) { return s.getName(); }).join(', ');
-      throw new Error('Aba "' + CFG.PLANILHA_ABA + '" não encontrada. Disponíveis: ' + nomes);
+      throw new Error('Aba "' + TrackingFTR.Config.PLANILHA_ABA + '" não encontrada. Disponíveis: ' + nomes);
     }
     return { spreadsheet: ss, sheet: sheet };
   };
 
   P.abrirOuCriarAbaLog = function (spreadsheet) {
-    let aba = spreadsheet.getSheetByName(CFG.ABA_LOG);
+    let aba = spreadsheet.getSheetByName(TrackingFTR.Config.ABA_LOG);
     const cabecalho = [
       'DATA_HORA', 'EXECUCAO_ID', 'FTR_MASCARADO', 'CAMPO', 'VALOR_ANTERIOR_MASCARADO',
       'VALOR_NOVO_MASCARADO', 'TIPO_DOCUMENTO', 'ARQUIVO_MASCARADO', 'MSG_ID_MASCARADO',
@@ -46,10 +46,10 @@ TrackingFTR.Persistence = {};
       'RETENCAO_ATE',
     ];
     if (!aba) {
-      aba = spreadsheet.insertSheet(CFG.ABA_LOG);
+      aba = spreadsheet.insertSheet(TrackingFTR.Config.ABA_LOG);
       aba.getRange(1, 1, 1, cabecalho.length).setValues([cabecalho]);
       aba.setFrozenRows(1);
-      SEC.logInfo('Persistence: aba ' + CFG.ABA_LOG + ' criada. Restrinja o acesso a administradores/revisores autorizados.');
+      TrackingFTR.Security.logInfo('Persistence: aba ' + TrackingFTR.Config.ABA_LOG + ' criada. Restrinja o acesso a administradores/revisores autorizados.');
     }
     return aba;
   };
@@ -61,13 +61,13 @@ TrackingFTR.Persistence = {};
   P.construirIndice = function (sheet, colMap) {
     const indice = { porFtr: new Map(), porBooking: new Map(), porBl: new Map() };
     const ultimaLinha = sheet.getLastRow();
-    if (ultimaLinha < CFG.LINHA_INICIAL) return indice;
+    if (ultimaLinha < TrackingFTR.Config.LINHA_INICIAL) return indice;
 
     const nCols = Math.max.apply(null, Object.values(colMap).filter(Boolean).concat([1]));
-    const valores = sheet.getRange(CFG.LINHA_INICIAL, 1, ultimaLinha - CFG.LINHA_INICIAL + 1, nCols).getValues();
+    const valores = sheet.getRange(TrackingFTR.Config.LINHA_INICIAL, 1, ultimaLinha - TrackingFTR.Config.LINHA_INICIAL + 1, nCols).getValues();
 
     valores.forEach(function (linha, i) {
-      const numeroLinha = CFG.LINHA_INICIAL + i;
+      const numeroLinha = TrackingFTR.Config.LINHA_INICIAL + i;
       const ftrCel = colMap.FTR ? (linha[colMap.FTR - 1] || '').toString().trim() : '';
       if (ftrCel) {
         const ftrNorm = TrackingFTR.Extract.normalizarFTR(ftrCel);
@@ -92,7 +92,7 @@ TrackingFTR.Persistence = {};
 
   P.comBloqueio = function (fn) {
     const lock = LockService.getScriptLock();
-    const obtido = lock.tryLock(CFG.LOCK_TIMEOUT_MS);
+    const obtido = lock.tryLock(TrackingFTR.Config.LOCK_TIMEOUT_MS);
     if (!obtido) {
       throw new Error('LOCK_OCUPADO: outra execução do TrackingFTR está em andamento. Esta execução foi abortada com segurança sem gravar nada.');
     }
@@ -188,7 +188,7 @@ TrackingFTR.Persistence = {};
         const colisao = detectarColisaoTransversal_(indice, chaveColuna, campoResolvido.vencedor.valorNormalizado, resultado.ftr);
         if (colisao) {
           temConflito = true;
-          logEntradas.push(montarLogEntrada_(execucaoId, resultado.ftr, chaveColuna, valoresAtuais[coluna - 1], SEC.mascarar(campoResolvido.vencedor.valorNormalizado), [campoResolvido.vencedor], 'CONFLITO', 'colisao_transversal_outro_ftr:' + SEC.mascarar(colisao.ftr, 3, 2)));
+          logEntradas.push(montarLogEntrada_(execucaoId, resultado.ftr, chaveColuna, valoresAtuais[coluna - 1], TrackingFTR.Security.mascarar(campoResolvido.vencedor.valorNormalizado), [campoResolvido.vencedor], 'CONFLITO', 'colisao_transversal_outro_ftr:' + TrackingFTR.Security.mascarar(colisao.ftr, 3, 2)));
           return;
         }
       }
@@ -233,10 +233,10 @@ TrackingFTR.Persistence = {};
     }
 
     if (colMap.STATUS_EXTRACAO) {
-      valoresPorColuna[colMap.STATUS_EXTRACAO] = { valor: temConflito ? CFG.MARCADOR_REVISAR : 'OK' };
+      valoresPorColuna[colMap.STATUS_EXTRACAO] = { valor: temConflito ? TrackingFTR.Config.MARCADOR_REVISAR : 'OK' };
     }
     if (colMap.AUTO_SYNC && algumaGravacao) {
-      valoresPorColuna[colMap.AUTO_SYNC] = { valor: CFG.MARCADOR_AUTO_SYNC };
+      valoresPorColuna[colMap.AUTO_SYNC] = { valor: TrackingFTR.Config.MARCADOR_AUTO_SYNC };
     }
 
     return { valoresPorColuna: valoresPorColuna, logEntradas: logEntradas, temConflito: temConflito, algumaGravacao: algumaGravacao };
@@ -246,10 +246,10 @@ TrackingFTR.Persistence = {};
     const principal = candidatosUsados && candidatosUsados[0];
     return {
       execucaoId: execucaoId,
-      ftrMascarado: SEC.mascarar(ftr, 3, 2),
+      ftrMascarado: TrackingFTR.Security.mascarar(ftr, 3, 2),
       campo: campo,
-      valorAnteriorMascarado: SEC.mascarar((valorAnterior || '').toString(), 2, 2),
-      valorNovoMascarado: SEC.mascarar((valorNovo || '').toString(), 2, 2),
+      valorAnteriorMascarado: TrackingFTR.Security.mascarar((valorAnterior || '').toString(), 2, 2),
+      valorNovoMascarado: TrackingFTR.Security.mascarar((valorNovo || '').toString(), 2, 2),
       tipoDocumento: principal ? principal.tipoDoc : '',
       arquivoMascarado: principal ? (principal.nomeArquivo || '(fonte email)') : '',
       msgIdMascarado: principal ? principal.mensagemIdMascarado : '',
@@ -280,7 +280,7 @@ TrackingFTR.Persistence = {};
       const col = parseInt(colStr, 10);
       const info = valoresPorColuna[col];
       const idx = col - 1;
-      const novo = info.ehData ? info.valor : SM.escaparValorPerigoso(info.valor);
+      const novo = info.ehData ? info.valor : TrackingFTR.SheetMap.escaparValorPerigoso(info.valor);
       if (atuais[idx] !== novo && !(info.ehData && atuais[idx] instanceof Date && Math.abs(atuais[idx].getTime() - info.valor.getTime()) < 60000)) {
         atuais[idx] = novo;
         mudou = true;
@@ -306,7 +306,7 @@ TrackingFTR.Persistence = {};
     Object.keys(valoresPorColuna).forEach(function (colStr) {
       const col = parseInt(colStr, 10);
       const info = valoresPorColuna[col];
-      linhaArr[col - 1] = info.ehData ? info.valor : SM.escaparValorPerigoso(info.valor);
+      linhaArr[col - 1] = info.ehData ? info.valor : TrackingFTR.SheetMap.escaparValorPerigoso(info.valor);
     });
 
     const linhaDestino = sheet.getLastRow() + 1;
@@ -338,7 +338,7 @@ TrackingFTR.Persistence = {};
   };
 
   function calcularDataRetencao_() {
-    return new Date(Date.now() + CFG.RETENCAO_LOG_DIAS * 24 * 60 * 60 * 1000);
+    return new Date(Date.now() + TrackingFTR.Config.RETENCAO_LOG_DIAS * 24 * 60 * 60 * 1000);
   }
 
   /** Remove linhas do log cuja data de retenção já passou (item 18). */
@@ -358,4 +358,4 @@ TrackingFTR.Persistence = {};
     return removidas;
   };
 
-})(TrackingFTR.Persistence, TrackingFTR.Config, TrackingFTR.Security, TrackingFTR.SheetMap);
+})(TrackingFTR.Persistence);

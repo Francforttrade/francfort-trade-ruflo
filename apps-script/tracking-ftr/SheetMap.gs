@@ -12,7 +12,7 @@
 var TrackingFTR = TrackingFTR || {};
 TrackingFTR.SheetMap = {};
 
-(function (M, CFG, SEC) {
+(function (M) {
 
   function normalizarCabecalho_(texto) {
     if (!texto) return '';
@@ -31,7 +31,7 @@ TrackingFTR.SheetMap = {};
    */
   M.mapearColunas = function (sheet) {
     const ultimaCol = Math.max(sheet.getLastColumn(), 1);
-    const cabecalhoRange = sheet.getRange(CFG.LINHA_CABECALHO, 1, 1, ultimaCol);
+    const cabecalhoRange = sheet.getRange(TrackingFTR.Config.LINHA_CABECALHO, 1, 1, ultimaCol);
     const cabecalho = cabecalhoRange.getValues()[0];
 
     const porTextoNormalizado = new Map();
@@ -46,8 +46,8 @@ TrackingFTR.SheetMap = {};
     const criadas = [];
     let proximaColunaLivre = ultimaCol;
 
-    Object.keys(CFG.CAMPOS_PLANILHA).forEach(function (chave) {
-      const def = CFG.CAMPOS_PLANILHA[chave];
+    Object.keys(TrackingFTR.Config.CAMPOS_PLANILHA).forEach(function (chave) {
+      const def = TrackingFTR.Config.CAMPOS_PLANILHA[chave];
       let coluna = null;
 
       for (let i = 0; i < def.aliases.length; i++) {
@@ -61,14 +61,14 @@ TrackingFTR.SheetMap = {};
       if (!coluna && def.criarSeAusente) {
         proximaColunaLivre += 1;
         coluna = proximaColunaLivre;
-        sheet.getRange(CFG.LINHA_CABECALHO, coluna).setValue(def.headerCriacao || chave);
+        sheet.getRange(TrackingFTR.Config.LINHA_CABECALHO, coluna).setValue(def.headerCriacao || chave);
         criadas.push(def.headerCriacao || chave);
-        SEC.logInfo('SheetMap: coluna "' + (def.headerCriacao || chave) + '" criada na posição ' + coluna + ' (não existia).');
+        TrackingFTR.Security.logInfo('SheetMap: coluna "' + (def.headerCriacao || chave) + '" criada na posição ' + coluna + ' (não existia).');
       }
 
-      if (!coluna && CFG.INDICE_LEGADO_FALLBACK[chave]) {
-        coluna = CFG.INDICE_LEGADO_FALLBACK[chave];
-        SEC.logWarn('SheetMap: coluna "' + chave + '" não encontrada por cabeçalho — usando índice legado ' + coluna + ' como fallback. Confirme o cabeçalho real da planilha.');
+      if (!coluna && TrackingFTR.Config.INDICE_LEGADO_FALLBACK[chave]) {
+        coluna = TrackingFTR.Config.INDICE_LEGADO_FALLBACK[chave];
+        TrackingFTR.Security.logWarn('SheetMap: coluna "' + chave + '" não encontrada por cabeçalho — usando índice legado ' + coluna + ' como fallback. Confirme o cabeçalho real da planilha.');
       }
 
       mapa[chave] = coluna || null;
@@ -107,4 +107,4 @@ TrackingFTR.SheetMap = {};
     return valor;
   };
 
-})(TrackingFTR.SheetMap, TrackingFTR.Config, TrackingFTR.Security);
+})(TrackingFTR.SheetMap);
