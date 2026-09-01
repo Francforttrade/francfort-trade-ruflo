@@ -46,9 +46,25 @@ colisão de nomes.
    com `ocr`/`ocrLanguage`).
 5. Salve. Na primeira execução de qualquer função, a tela de
    consentimento OAuth vai listar os escopos do `appsscript.json`
-   (Gmail somente leitura, Sheets, Drive apenas dos arquivos do
-   próprio app, metadados do Drive somente leitura, Docs somente
-   leitura, gerenciar os próprios acionadores). Revise e aceite.
+   (Gmail somente leitura, Sheets, Drive, Docs somente leitura,
+   gerenciar os próprios acionadores, e-mail da conta em uso). Revise
+   e aceite.
+
+   > **Nota sobre o escopo do Drive:** a intenção original era usar
+   > `drive.file` (só arquivos criados pelo próprio script) em vez do
+   > escopo amplo `drive`. Na prática, o serviço embutido `DriveApp`
+   > (usado para criar/gerenciar a pasta temporária, checar
+   > compartilhamento da planilha, mover temporários pra lixeira) exige
+   > o escopo `https://www.googleapis.com/auth/drive` quando os escopos
+   > são fixados manualmente no manifesto — `drive.file` não é
+   > suficiente mesmo para `DriveApp.createFolder()`. Isso foi
+   > confirmado rodando `trackingFtrValidarPermissoes()` de verdade
+   > (erro `Specified permissions are not sufficient to call
+   > DriveApp.createFolder`). É uma limitação documentada do Apps
+   > Script, não do código — o risco residual é aceito e mitigado pelas
+   > validações de compartilhamento em `Security.gs`, que abortam a
+   > execução se qualquer arquivo relevante estiver exposto
+   > publicamente.
 
 ## Ordem de execução recomendada
 
@@ -107,7 +123,12 @@ trackingFtrTestarAnexo("<messageId>", 0)     // roda conversão/OCR em 1 anexo, 
 - Sem separador real de "página" em texto já extraído, a deduplicação
   de pesos repetidos em páginas diferentes é best-effort (por valor
   idêntico consecutivo).
-- `DriveApp.getFileById` num arquivo que o script não criou (a
-  planilha de produção) precisa do escopo
-  `drive.metadata.readonly` — ele dá acesso só a metadados
-  (compartilhamento/permissões), nunca ao conteúdo da planilha.
+- `DriveApp` (serviço embutido) precisa do escopo amplo
+  `https://www.googleapis.com/auth/drive` para operações básicas como
+  `createFolder`/`getFileById`/`getSharingAccess` quando os escopos do
+  projeto são fixados manualmente — confirmado em teste real, não é
+  suposição. `drive.file`/`drive.metadata.readonly` não bastam para o
+  `DriveApp`, mesmo que bastassem para o serviço avançado `Drive.*`.
+  O risco residual (acesso amplo ao Drive da conta que executa o
+  script) é mitigado pelas validações de compartilhamento que abortam
+  a execução diante de qualquer configuração insegura.
