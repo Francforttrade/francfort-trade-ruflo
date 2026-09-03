@@ -67,9 +67,15 @@ gcloud secrets add-iam-policy-binding francfort-whatsapp-webhook-secret \
 
 ## Notas
 
-- `--no-allow-unauthenticated` está no deploy por padrão — os endpoints
-  (`/webhook-whatsapp` etc.) não são públicos. Ajuste isso quando o IAM/JWT
-  do webhook estiver definido (`docs/ROADMAP.md`, seção C).
+- O serviço é implantado com `--allow-unauthenticated`: os endpoints
+  (`/webhook-whatsapp`, `/webhook-gmail` etc.) são públicos porque IAM não
+  autentica chamadores externos (WhatsApp, o trigger do Apps Script). O
+  controle de acesso real é o segredo compartilhado validado em
+  `src/middleware/webhookAuth.js` — todo request precisa do header
+  `X-Webhook-Secret` batendo com a env var `WEBHOOK_SHARED_SECRET`, mapeada
+  ao secret `francfort-whatsapp-webhook-secret` do Secret Manager (item 2
+  acima). Veja `apps-script/gmail-intake/README.md` para o setup do lado do
+  Apps Script.
 - O `Dockerfile` **não foi validado com `docker build` real** neste ambiente
   — a política de rede da sessão bloqueia o registry do Docker Hub
   (`production.cloudfront.docker.com`, erro 403). Validar o build antes do
