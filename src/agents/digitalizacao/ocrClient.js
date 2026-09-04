@@ -18,8 +18,12 @@ async function getAuthorizedClient() {
 }
 
 async function callEndpoint(path, { fileBase64, mimeType }) {
+	// undefined ("never attempted", not configured) is distinct from null
+	// ("attempted and genuinely failed") below — index.js's tryOcr() needs
+	// that distinction to avoid charging a paid-call-cap slot, or reporting
+	// a 'cheap' cost tier, for a worker that was never actually called.
 	if (!CONFIG.DIGITALIZACAO.PADDLE_OCR_SERVICE_URL) {
-		return null;
+		return undefined;
 	}
 
 	try {
@@ -37,12 +41,12 @@ async function callEndpoint(path, { fileBase64, mimeType }) {
 	}
 }
 
-// { text, confidence, pages } | null
+// { text, confidence, pages } | null (failed) | undefined (not configured)
 async function runOcr({ fileBase64, mimeType }) {
 	return callEndpoint('/ocr', { fileBase64, mimeType });
 }
 
-// { table_rows, confidence } | null
+// { table_rows, confidence } | null (failed) | undefined (not configured)
 async function runTableOcr({ fileBase64, mimeType }) {
 	return callEndpoint('/table', { fileBase64, mimeType });
 }

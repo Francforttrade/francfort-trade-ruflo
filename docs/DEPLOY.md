@@ -95,6 +95,46 @@ gcloud secrets add-iam-policy-binding francfort-whatsapp-webhook-secret \
 	--project=<PROJECT_ID>
 ```
 
+## 8. Google Document AI (docs/RDIA_PRD.md chunk 2b)
+
+Ao contrário do PaddleOCR (item 6), não há serviço novo para deployar —
+Document AI é uma API gerenciada do Google, chamada pelo próprio serviço
+`ruflo` via `@google-cloud/documentai`, autenticada com as mesmas
+Application Default Credentials já usadas para Firestore/Supabase. Passos
+únicos:
+
+```bash
+# 1. Habilitar a API Document AI no projeto.
+gcloud services enable documentai.googleapis.com --project=<PROJECT_ID>
+
+# 2. Conceder à service account do ruflo permissão para chamar processadores.
+gcloud projects add-iam-policy-binding <PROJECT_ID> \
+	--member="serviceAccount:<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" \
+	--role="roles/documentai.apiUser"
+
+# 3. Criar um processador (tipo "Document OCR" cobre o caso de uso do
+#    DIGITALIZACAO — texto solto; um form/table parser especializado pode
+#    substituir depois, sem mudar o client) e anotar o ID e a região:
+gcloud documentai processors create \
+	--display-name="ruflo-digitalizacao" \
+	--type="OCR_PROCESSOR" \
+	--location=us \
+	--project=<PROJECT_ID>
+```
+
+Setar `DOCUMENT_AI_PROCESSOR_ID` (o ID retornado no passo 3) e
+`DOCUMENT_AI_LOCATION` (a região do processador, ex. `us`) como env vars do
+serviço `ruflo` — ver `.env.example`. Sem `DOCUMENT_AI_PROCESSOR_ID`
+configurado, o tier `expensive` fica desligado (nunca tentado) e o pipeline
+para no resultado do PaddleOCR, degradando para revisão manual quando este
+falhar — não é um erro de configuração bloqueante, é o comportamento padrão
+até esse processador ser provisionado.
+
+**Não validado neste ambiente:** a criação do processador e a chamada real à
+API não foram exercitadas contra um projeto GCP de verdade (mesma limitação
+de rede das outras integrações Google). O client SDK (`documentAiClient.js`)
+foi validado com mocks — ver `src/agents/digitalizacao/documentAiClient.test.js`.
+
 ## Notas
 
 - O serviço é implantado com `--allow-unauthenticated`: os endpoints

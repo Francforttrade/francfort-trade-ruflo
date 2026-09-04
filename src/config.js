@@ -46,13 +46,25 @@ const CONFIG = {
 		// reprocessed attachment. 90 days covers a full FTR lifecycle
 		// (docs/ROADMAP.md's cycle-time KPI is measured in weeks).
 		CACHE_TTL_DAYS: Number(process.env.DIGITALIZACAO_CACHE_TTL_DAYS) || 90,
-		// Per-FTR/per-day caps on OCR worker calls (rateLimiter.js) — Paddle
-		// itself has no per-call $ cost (self-hosted), but a cap still bounds
-		// how hard one FTR (or one bad day) can hit the worker's compute
-		// capacity, and doubles as the cap Chunk 2b's Document AI fallback
-		// will reuse once that *is* a paid call.
+		// Per-FTR/per-day caps (rateLimiter.js) — same numeric limits, but
+		// tracked as separate budgets per kind ('paddle' vs 'document_ai'),
+		// so Paddle's compute-capacity cap and Document AI's $-cost cap never
+		// throttle each other.
 		MAX_PAID_CALLS_PER_FTR: Number(process.env.DIGITALIZACAO_MAX_PAID_CALLS_PER_FTR) || 20,
 		MAX_PAID_CALLS_PER_DAY: Number(process.env.DIGITALIZACAO_MAX_PAID_CALLS_PER_DAY) || 500,
+
+		// Chunk 2b — Google Document AI, the "expensive" tier: only tried
+		// after Paddle (chunk 2a) genuinely failed or came back below
+		// OCR_MIN_CONFIDENCE, never up front. Uses the same GCP credentials
+		// as Firestore (documentAiClient.js) — no separate API key, just the
+		// `roles/documentai.apiUser` grant documented in docs/DEPLOY.md.
+		DOCUMENT_AI_PROCESSOR_ID: process.env.DOCUMENT_AI_PROCESSOR_ID || null,
+		DOCUMENT_AI_LOCATION: process.env.DOCUMENT_AI_LOCATION || 'us',
+		// Below this, Document AI's own reported confidence means even the
+		// "last resort" tier isn't trustworthy enough to classify/extract
+		// from — same semantics as OCR_MIN_CONFIDENCE, kept as its own
+		// setting since Document AI's baseline accuracy differs from Paddle's.
+		DOCUMENT_AI_MIN_CONFIDENCE: Number(process.env.DIGITALIZACAO_DOCUMENT_AI_MIN_CONFIDENCE) || 0.5,
 	},
 };
 

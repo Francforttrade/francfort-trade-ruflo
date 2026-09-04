@@ -50,10 +50,14 @@ function pickErrorCode({ hasFieldConflict, hasEntityAmbiguous, extractionMethod,
 		if (fileFailureReason === 'corrupted') {
 			return ERROR_CODES.CORRUPTED_FILE;
 		}
-		if (fileFailureReason === 'ocr_failed') {
+		// document_ai_* reuses the same two codes as Paddle's ocr_* — both
+		// are "a vision provider was tried and didn't work out", and a human
+		// reviewer doesn't need a different code depending on which of the
+		// two OCR tiers (chunk 2a vs 2b) happened to run last.
+		if (fileFailureReason === 'ocr_failed' || fileFailureReason === 'document_ai_failed') {
 			return ERROR_CODES.OCR_FAILED;
 		}
-		if (fileFailureReason === 'ocr_low_confidence') {
+		if (fileFailureReason === 'ocr_low_confidence' || fileFailureReason === 'document_ai_low_confidence') {
 			return ERROR_CODES.OCR_LOW_CONFIDENCE;
 		}
 		return ERROR_CODES.OCR_NOT_AVAILABLE;

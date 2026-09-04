@@ -1,5 +1,6 @@
 const { PDFDocument, StandardFonts } = require('pdf-lib');
 const XLSX = require('xlsx');
+const CONFIG = require('../../config');
 
 const FTR_MATCH_CHECK = [{ check: 'ftr_code_exists_in_supabase', result: 'match', detail: {} }];
 
@@ -9,6 +10,7 @@ jest.mock('./entityResolution', () => ({ resolveEntity: jest.fn() }));
 jest.mock('./dedupCache', () => ({ getCached: jest.fn(), setCached: jest.fn() }));
 jest.mock('./rateLimiter', () => ({ isUnderPaidCallCap: jest.fn(), recordPaidCall: jest.fn() }));
 jest.mock('./ocrClient', () => ({ runOcr: jest.fn() }));
+jest.mock('./documentAiClient', () => ({ runDocumentAi: jest.fn() }));
 
 const excecoes = require('../excecoes');
 const { validateExtraction } = require('./crossValidation');
@@ -16,6 +18,7 @@ const { resolveEntity } = require('./entityResolution');
 const { getCached, setCached } = require('./dedupCache');
 const { isUnderPaidCallCap, recordPaidCall } = require('./rateLimiter');
 const { runOcr } = require('./ocrClient');
+const { runDocumentAi } = require('./documentAiClient');
 const { process } = require('./index');
 
 async function buildInvoicePdfBase64() {
@@ -48,6 +51,8 @@ function buildPackingListXlsxBase64() {
 	return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }).toString('base64');
 }
 
+const ORIGINAL_DOCUMENT_AI_PROCESSOR_ID = CONFIG.DIGITALIZACAO.DOCUMENT_AI_PROCESSOR_ID;
+
 describe('digitalizacao agent', () => {
 	beforeEach(() => {
 		validateExtraction.mockReset().mockResolvedValue(FTR_MATCH_CHECK);
@@ -58,6 +63,17 @@ describe('digitalizacao agent', () => {
 		isUnderPaidCallCap.mockReset().mockResolvedValue(true);
 		recordPaidCall.mockReset().mockResolvedValue(undefined);
 		runOcr.mockReset().mockResolvedValue(null);
+		runDocumentAi.mockReset().mockResolvedValue(undefined);
+		// Most tests here only care about the Paddle tier, but index.js now
+		// short-circuits tryDocumentAi entirely (skipping the rate-cap check
+		// and runDocumentAi) when DOCUMENT_AI_PROCESSOR_ID isn't set, so it
+		// has to be "configured" here for the Document AI-specific tests
+		// below to actually exercise that call path.
+		CONFIG.DIGITALIZACAO.DOCUMENT_AI_PROCESSOR_ID = 'test-processor';
+	});
+
+	afterAll(() => {
+		CONFIG.DIGITALIZACAO.DOCUMENT_AI_PROCESSOR_ID = ORIGINAL_DOCUMENT_AI_PROCESSOR_ID;
 	});
 
 	test('extracts an invoice from a text-layer PDF at the free tier, routed to documentacao', async () => {
@@ -116,7 +132,12 @@ describe('digitalizacao agent', () => {
 		});
 
 		expect(runOcr).toHaveBeenCalledWith(expect.objectContaining({ mimeType: 'application/pdf' }));
-		expect(recordPaidCall).toHaveBeenCalledWith('03075-26');
+		expect(recordPaidCall).toHaveBeenCalledWith('paddle', '03075-26');
+		// Paddle failed, so Document AI is attempted as a fallback (and left
+		// unconfigured by the shared beforeEach default), which must not
+		// clobber the OCR_FAILED reason Paddle already established.
+		expect(runDocumentAi).toHaveBeenCalledWith(expect.objectContaining({ mimeType: 'application/pdf' }));
+		expect(recordPaidCall).not.toHaveBeenCalledWith('document_ai', '03075-26');
 		expect(result.extraction_method).toBeNull();
 		expect(result.cost_tier_used).toBe('cheap');
 		expect(result.classified_doc_type).toBeNull();
@@ -159,6 +180,84 @@ describe('digitalizacao agent', () => {
 			expect.objectContaining({ extractedText: expect.stringContaining('INV-2026-0100') }),
 			'03075-26'
 		);
+	});
+
+	test('Document AI resolves an invoice after PaddleOCR fails, at the expensive tier', async () => {
+		runOcr.mockResolvedValue(null);
+		runDocumentAi.mockResolvedValue({
+			text: 'Invoice Number: INV-2026-0200\nBuyer: Agrotrade Rus\nTotal: USD 61000.00',
+			confidence: 0.88,
+		});
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'application/pdf', filename: 'scan.pdf', fileBase64 });
+
+		expect(recordPaidCall).toHaveBeenCalledWith('paddle', '03075-26');
+		expect(recordPaidCall).toHaveBeenCalledWith('document_ai', '03075-26');
+		expect(result.extraction_method).toBe('document_ai');
+		expect(result.cost_tier_used).toBe('expensive');
+		expect(result.classified_doc_type).toBe('Invoice');
+		expect(result.extracted_fields.invoice_number).toBe('INV-2026-0200');
+		expect(setCached).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({ extractedText: expect.stringContaining('INV-2026-0200') }),
+			'03075-26'
+		);
+	});
+
+	test('a Document AI call failure (after Paddle also failed) escalates OCR_FAILED at the expensive tier', async () => {
+		runOcr.mockResolvedValue(null);
+		runDocumentAi.mockResolvedValue(null);
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'application/pdf', filename: 'scan.pdf', fileBase64 });
+
+		expect(result.extraction_method).toBeNull();
+		expect(result.cost_tier_used).toBe('expensive');
+		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('OCR_FAILED') }));
+	});
+
+	test('a low-confidence Document AI result escalates OCR_LOW_CONFIDENCE at the expensive tier', async () => {
+		runOcr.mockResolvedValue(null);
+		runDocumentAi.mockResolvedValue({ text: 'garbled nonsense', confidence: 0.1 });
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'application/pdf', filename: 'scan.pdf', fileBase64 });
+
+		expect(result.extraction_method).toBeNull();
+		expect(result.cost_tier_used).toBe('expensive');
+		expect(setCached).not.toHaveBeenCalled();
+		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('OCR_LOW_CONFIDENCE') }));
+	});
+
+	test('hitting the Document AI call cap (after Paddle failed) skips it and keeps OCR_FAILED at the cheap tier', async () => {
+		runOcr.mockResolvedValue(null);
+		isUnderPaidCallCap.mockImplementation(async (kind) => kind !== 'document_ai');
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'application/pdf', filename: 'scan.pdf', fileBase64 });
+
+		expect(runDocumentAi).not.toHaveBeenCalled();
+		expect(result.extraction_method).toBeNull();
+		// Document AI was never actually called (rate-capped), so its own
+		// cost tier is 'cheap' — the same as what Paddle already incurred —
+		// not 'expensive'.
+		expect(result.cost_tier_used).toBe('cheap');
+		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('OCR_FAILED') }));
+	});
+
+	test('Document AI not provisioned (no DOCUMENT_AI_PROCESSOR_ID) skips the rate-cap check entirely and keeps OCR_FAILED', async () => {
+		CONFIG.DIGITALIZACAO.DOCUMENT_AI_PROCESSOR_ID = null;
+		runOcr.mockResolvedValue(null);
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'application/pdf', filename: 'scan.pdf', fileBase64 });
+
+		expect(isUnderPaidCallCap).not.toHaveBeenCalledWith('document_ai', expect.anything());
+		expect(runDocumentAi).not.toHaveBeenCalled();
+		expect(result.extraction_method).toBeNull();
+		expect(result.cost_tier_used).toBe('cheap');
+		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('OCR_FAILED') }));
 	});
 
 	test('a dedup cache hit skips PaddleOCR entirely but still runs the rest of the pipeline', async () => {

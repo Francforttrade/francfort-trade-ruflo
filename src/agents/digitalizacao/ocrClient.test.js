@@ -54,12 +54,12 @@ describe('digitalizacao ocrClient', () => {
 			expect(await runOcr({ fileBase64: 'a', mimeType: 'image/jpeg' })).toBeNull();
 		});
 
-		test('returns null without attempting a call when PADDLE_OCR_SERVICE_URL is not configured', async () => {
+		test('returns undefined without attempting a call when PADDLE_OCR_SERVICE_URL is not configured', async () => {
 			delete process.env.PADDLE_OCR_SERVICE_URL;
 			const { getIdTokenClient } = mockGoogleAuthWith(async () => ({ data: {} }));
 			const { runOcr } = require('./ocrClient');
 
-			expect(await runOcr({ fileBase64: 'a', mimeType: 'image/jpeg' })).toBeNull();
+			expect(await runOcr({ fileBase64: 'a', mimeType: 'image/jpeg' })).toBeUndefined();
 			expect(getIdTokenClient).not.toHaveBeenCalled();
 		});
 	});

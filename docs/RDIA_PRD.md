@@ -3,7 +3,7 @@
 **Nome técnico:** Rúflo Document Intelligence Agent — RDIA
 **Módulo no código:** `src/agents/digitalizacao/` (12º agente do orquestrador — ver `docs/ROADMAP.md`)
 **Versão:** 1.0
-**Status:** Chunks 1 (parsing determinístico + contrato base), 3 (Entity Resolution, regra de conflito, confidence de 4 faixas, integração de erro com EXCECOES) e 2a (worker PaddleOCR, cache de dedup, teto de chamadas) implementados. Chunk 2b (Document AI) e 4 (provenance por campo, event bus, auditoria) seguem no roadmap ao final deste documento.
+**Status:** Chunks 1 (parsing determinístico + contrato base), 3 (Entity Resolution, regra de conflito, confidence de 4 faixas, integração de erro com EXCECOES), 2a (worker PaddleOCR, cache de dedup, teto de chamadas) e 2b (fallback Google Document AI) implementados. Chunk 4 (provenance por campo, event bus, auditoria) segue no roadmap ao final deste documento.
 
 Cada seção abaixo mantém a especificação original e adiciona uma nota **🔧 Realidade Rúflo** apontando exatamente onde o código atual já atende o contrato, onde precisa mudar, e que infraestrutura nova (se houver) o item exige. O objetivo é que este PRD sirva tanto de visão de produto quanto de plano de engenharia executável sobre a base que já existe.
 
@@ -17,7 +17,7 @@ O agente deve privilegiar extração determinística e OCR local/open source, ut
 
 **Princípio:** `Parser → OCR → regras → modelo leve → LLM somente quando necessário.`
 
-**🔧 Realidade Rúflo:** já implementado, incluindo o degrau de OCR. `structuredFileExtractor.js` (XLSX/DOCX) e `textLayerDetector.js` (PDF) cobrem "Parser"; `extractors/*.js` cobrem "regras"; `services/paddleocr/` + `ocrClient.js` cobrem "OCR" (Chunk 2a). Só o degrau de LLM (item 6/7 de §17) segue não implementado.
+**🔧 Realidade Rúflo:** já implementado, incluindo os dois degraus de OCR. `structuredFileExtractor.js` (XLSX/DOCX) e `textLayerDetector.js` (PDF) cobrem "Parser"; `extractors/*.js` cobrem "regras"; `services/paddleocr/` + `ocrClient.js` cobrem o degrau "cheap" de OCR (Chunk 2a); `documentAiClient.js` cobre o degrau "expensive" (Chunk 2b), só acionado quando o PaddleOCR falhou de verdade. Só o degrau de LLM (item 6/7 de §17) segue não implementado.
 
 ---
 
@@ -417,7 +417,7 @@ Não traduzir o documento inteiro por padrão. Preservar `{original_value, norma
 
 Large LLM é fallback, nunca pipeline padrão.
 
-**🔧 Realidade Rúflo — degraus 1-4 implementados.** `dedupCache.js` (Firestore, TTL 90 dias) cobre o degrau 1; `structuredFileExtractor`/`textLayerDetector` = parser nativo (degrau 2); `extractors/*.js` = regex (degrau 3); `ocrClient.js` chamando `services/paddleocr/` = degrau 4 (PaddleOCR). A ordem é respeitada exatamente como especificado: `index.js`'s `tryOcr()` só chega no degrau 4 depois que os degraus 1-3 já falharam para aquele documento (sem camada de texto/estrutura), e só então verifica o cache e o teto de chamadas (`rateLimiter.js`) antes de pagar o custo de compute do worker. Degraus 5-7 (modelo leve, small LLM, large LLM) **não estão no plano atual** — o Chunk 2b previa Google Document AI como "expensive tier", que tecnicamente já é um modelo especializado (não um LLM genérico) e deveria ficar entre os degraus 4 e 6 desta lista. Nenhum LLM genérico (Claude/GPT) está cotado neste pipeline hoje — `ANTHROPIC_API_KEY` existe no `.env.example` mas não é chamado por nenhum agente; permanece como fallback de último nível, não implementado, coerente com o princípio "Large LLM só como último recurso".
+**🔧 Realidade Rúflo — degraus 1-5 implementados.** `dedupCache.js` (Firestore, TTL 90 dias) cobre o degrau 1; `structuredFileExtractor`/`textLayerDetector` = parser nativo (degrau 2); `extractors/*.js` = regex (degrau 3); `ocrClient.js` chamando `services/paddleocr/` = degrau 4 (PaddleOCR, Chunk 2a); `documentAiClient.js` chamando a API gerenciada do Google = degrau 5 (Document AI, Chunk 2b) — um modelo especializado, não um LLM genérico, por isso encaixado antes dos degraus 6-7. A ordem é respeitada exatamente como especificado: `index.js`'s `tryOcr()` só chega no degrau 4 depois que os degraus 1-3 já falharam para aquele documento (sem camada de texto/estrutura), e só então verifica o cache e o teto de chamadas (`rateLimiter.js`) antes de pagar o custo de compute do worker; `tryDocumentAi()` só é chamado depois que o degrau 4 já foi genuinamente tentado e falhou (call failure ou confiança abaixo de `DOCUMENT_AI_MIN_CONFIDENCE`) — nunca quando o Paddle foi só pulado (mimeType inelegível, cache hit, teto atingido), e tem seu próprio teto de chamadas separado (`rateLimiter.js`'s budget por `kind`). Degraus 6-7 (small LLM, large LLM) **não estão no plano atual** — nenhum LLM genérico (Claude/GPT) está cotado neste pipeline hoje: `ANTHROPIC_API_KEY` existe no `.env.example` mas não é chamado por nenhum agente; permanece como fallback de último nível, não implementado, coerente com o princípio "Large LLM só como último recurso".
 
 ---
 
@@ -579,7 +579,7 @@ Não um agente monolítico — o Document Intelligence Agent é o orquestrador; 
 
 - [x] Receber PDF/DOCX/XLSX/imagem.
 - [x] Identificar automaticamente se OCR é necessário.
-- [x] Executar PaddleOCR quando necessário *(`services/paddleocr/` + `ocrClient.js`, com dedup e teto de chamadas)*.
+- [x] Executar PaddleOCR quando necessário, com fallback para Google Document AI se o Paddle falhar/ficar abaixo do threshold de confiança *(`services/paddleocr/` + `ocrClient.js` para o degrau `cheap`; `documentAiClient.js` para o degrau `expensive`; ambos com dedup e teto de chamadas próprio)*.
 - [ ] Detectar idioma. *(§16, não priorizado ainda)*
 - [x] Classificar o documento.
 - [ ] Criar chunks semânticos. *(§7, opcional até haver volume multi-página)*
@@ -594,7 +594,7 @@ Não um agente monolítico — o Document Intelligence Agent é o orquestrador; 
 - [ ] Registrar auditoria e custo *(chunk 4 — `AUDIT_LOG`; o custo em si já é limitado por `rateLimiter.js`, mas não é registrado como métrica ainda)*.
 - [x] Evitar processamento duplicado *(§25 — `dedupCache.js`, cache por hash com TTL de 90 dias)*.
 
-**Chunks 1+2a+3 (feitos) cobrem 11 dos 15 itens do MVP definido neste PRD.** Os itens restantes são: chunk 2b (Document AI como refinamento), chunk 4 (provenance por campo, event bus, auditoria), detecção de idioma (§16) e chunking semântico (§7, backlog).
+**Chunks 1+2a+2b+3 (feitos) cobrem 11 dos 15 itens do MVP definido neste PRD.** Os itens restantes são: chunk 4 (provenance por campo, event bus, auditoria), detecção de idioma (§16) e chunking semântico (§7, backlog).
 
 ---
 
@@ -668,7 +668,7 @@ Isso evita o problema original: cada automação lendo booking, invoice, scan, c
 | **1** | Contrato base, parser nativo (XLSX/DOCX/PDF texto), classificador por keyword, extractors dos 9 tipos | Não | ✅ Feito |
 | **3** | Entity Resolution real (§11/§12) + regra de conflito (§24) + confidence de 4 faixas (§13) + integração de erro com EXCECOES usando os códigos do §23 (`crossValidation.js`, `entityResolution.js`, `errorCodes.js`) | Não | ✅ Feito |
 | **2a** | Serviço PaddleOCR (`services/paddleocr/`, worker Python/Cloud Run) + `ocrClient.js` + cache de dedup por hash (`dedupCache.js`, §25) + teto de chamadas (`rateLimiter.js`) | Sim — deploy do novo serviço + IAM invoker (código pronto, `docker build`/`gcloud run deploy` reais não executados neste ambiente — ver `docs/DEPLOY.md` item 6) | ✅ Código feito — deploy real pendente de você |
-| **2b** | Fallback Google Document AI | Sim — habilitar API GCP | Planejado |
+| **2b** | Fallback Google Document AI (`documentAiClient.js`), acionado só quando o PaddleOCR (2a) falha de verdade ou fica abaixo do threshold de confiança — nunca quando ele foi só pulado/limitado | Sim — habilitar API GCP + `roles/documentai.apiUser` + criar processador (código pronto, chamada real não executada neste ambiente — ver `docs/DEPLOY.md` item 8) | ✅ Código feito — deploy real (API + processador) pendente de você |
 | **4** | Provenance por campo (§6, precisa de bounding box por campo — extensão do worker PaddleOCR), Event Bus via Firestore (§14), extensão do MONITOR (§21), hardening de segurança (`AUDIT_LOG`, PII), text normalization (§3) | Não | Planejado |
 | **5 (novo)** | Ampliar cobertura de tipo de documento (§9) e resposta parcial por `requested_fields` (§15) | Não | Backlog |
 | **6 (novo, opcional)** | Chunking semântico (§7/§8), OCR seletivo por página (§18) e suporte multilíngue (§16) | Não | Backlog — só se o volume/idioma real justificar |

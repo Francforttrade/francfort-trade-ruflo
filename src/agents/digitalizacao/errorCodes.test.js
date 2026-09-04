@@ -76,6 +76,28 @@ describe('digitalizacao errorCodes', () => {
 			expect(code).toBe(ERROR_CODES.OCR_LOW_CONFIDENCE);
 		});
 
+		test('a Document AI call failure is also OCR_FAILED (same code as Paddle)', () => {
+			const code = pickErrorCode({
+				hasFieldConflict: false,
+				hasEntityAmbiguous: false,
+				extractionMethod: null,
+				confidenceBand: 'review_required',
+				fileFailureReason: 'document_ai_failed',
+			});
+			expect(code).toBe(ERROR_CODES.OCR_FAILED);
+		});
+
+		test('a low-confidence Document AI result is also OCR_LOW_CONFIDENCE (same code as Paddle)', () => {
+			const code = pickErrorCode({
+				hasFieldConflict: false,
+				hasEntityAmbiguous: false,
+				extractionMethod: null,
+				confidenceBand: 'review_required',
+				fileFailureReason: 'document_ai_low_confidence',
+			});
+			expect(code).toBe(ERROR_CODES.OCR_LOW_CONFIDENCE);
+		});
+
 		test('a low confidence band with nothing else wrong is LOW_EXTRACTION_CONFIDENCE', () => {
 			const code = pickErrorCode({
 				hasFieldConflict: false,

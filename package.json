@@ -26,6 +26,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "@google-cloud/documentai": "^10.0.0",
     "@google-cloud/firestore": "^9.0.0",
     "@supabase/supabase-js": "^2.26.0",
     "axios": "^1.6.0",
