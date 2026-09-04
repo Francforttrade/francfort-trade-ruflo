@@ -96,6 +96,12 @@ async function process(context) {
 			extractedText = structured.text;
 			tableRows = structured.tableRows;
 			extractionMethod = 'structured_file';
+		} else {
+			// extractStructuredFile returns null only when XLSX.read/mammoth
+			// itself failed to parse the bytes — a corrupted file, not a
+			// missing OCR worker (OCR wouldn't help a broken spreadsheet
+			// anyway).
+			fileFailureReason = 'corrupted';
 		}
 	}
 
@@ -139,14 +145,20 @@ async function process(context) {
 	});
 	const relationship = await resolveEntity({ ftrCode, classifiedDocType: classification.docType, extractedFields });
 
-	const { field_confidence: fieldConfidence, overall_confidence: overallConfidence, confidence_band: confidenceBand, needs_review: needsReview } =
-		scoreConfidence({
-			classification,
-			extractedFields,
-			crossValidation,
-			entityStatus: relationship && relationship.status,
-			thresholds: CONFIDENCE_THRESHOLDS,
-		});
+	const {
+		field_confidence: fieldConfidence,
+		overall_confidence: overallConfidence,
+		confidence_band: confidenceBand,
+		needs_review: needsReview,
+		has_field_conflict: hasFieldConflict,
+		has_entity_ambiguous: hasEntityAmbiguous,
+	} = scoreConfidence({
+		classification,
+		extractedFields,
+		crossValidation,
+		entityStatus: relationship && relationship.status,
+		thresholds: CONFIDENCE_THRESHOLDS,
+	});
 
 	const result = {
 		agent: 'digitalizacao',
@@ -168,13 +180,11 @@ async function process(context) {
 	};
 
 	if (needsReview) {
-		const hasFieldConflict = crossValidation.some((check) => check.result === 'mismatch');
-		const hasEntityAmbiguous = Boolean(relationship && relationship.status === 'ambiguous');
 		const code = pickErrorCode({
 			hasFieldConflict,
 			hasEntityAmbiguous,
 			extractionMethod,
-			isReviewBand: confidenceBand === 'review_required' || confidenceBand === 'candidate_only',
+			confidenceBand,
 		});
 
 		logger.warn('DIGITALIZACAO: revisão necessária, escalando para EXCECOES', {

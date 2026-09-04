@@ -312,10 +312,11 @@ FTR-03073-26
 
 Chaves de relação: FTR, contract number, booking, BL, invoice, seller, buyer, container, vessel, dates, shipment.
 
-**🔧 Realidade Rúflo — implementado (Chunk 3).** `entityResolution.js` faz exatamente isso: para BL/Invoice/SWIFT, busca `bl_number`/`invoice_number`/`swift_ref` extraído contra `TABLES.BL_DOCUMENTS`/`TABLES.INVOICES`/`TABLES.PAYMENTS` (leitura direta, nunca `master.route()` recursivo — mesma justificativa de reentrância do §14/`withFtrLock`). Três resultados possíveis (`classifyEntityMatch`, função pura testada isoladamente):
+**🔧 Realidade Rúflo — implementado (Chunk 3).** `entityResolution.js` faz exatamente isso: para BL/Invoice/SWIFT, busca `bl_number`/`invoice_number`/`swift_ref` extraído contra `TABLES.BL_DOCUMENTS`/`TABLES.INVOICES`/`TABLES.PAYMENTS` (leitura direta, nunca `master.route()` recursivo — mesma justificativa de reentrância do §14/`withFtrLock`). Quatro resultados possíveis (`classifyEntityMatch`, função pura testada isoladamente, mais o caso de erro tratado à parte):
 - **`new`** — nenhum registro ainda para esse id → grava o relacionamento como candidato (`confidence: 0.6`). Caso normal de um documento chegando antes de outro.
 - **`confirmed`** — registro já existe e pertence à mesma FTR → grava com `confidence: 1`.
 - **`ambiguous`** — registro já existe sob uma FTR **diferente** → não grava (nunca persiste uma contradição como se fosse fato), e `index.js` escala para EXCECOES com o código `ENTITY_AMBIGUOUS` (§23).
+- **`unknown`** — a própria consulta ao Supabase falhou (erro transiente) → também não grava; tratado como inconclusivo, não como evidência de "new" (achado de revisão de código: a primeira versão confundia erro de consulta com "entidade nova", o que arriscava persistir uma relação a partir de uma leitura que nunca aconteceu).
 
 Nova tabela `supabase/migrations/0003_digitalizacao_relationships.sql` (`document_relationships`), adicionada a `TABLES` em `services/supabase.js`. Limitação conhecida: `evidence` ainda não referencia `chunk_id` (chunking não existe, §7) — só `document_id`/`content_hash` por ora. O relacionamento retornado também carrega `persisted: boolean` — a resolução (`status`/`confidence`) é sempre reportada mesmo quando a escrita em `document_relationships` falha (erro de rede/constraint), mas nesse caso `persisted: false` e um `logger.warn` registram que o grafo de entidades não recebeu essa aresta, em vez de reportar sucesso silenciosamente (achado de revisão de código, corrigido antes do primeiro commit).
 

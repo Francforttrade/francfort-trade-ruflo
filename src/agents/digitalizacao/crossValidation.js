@@ -69,12 +69,25 @@ async function checkSwiftAgainstPayments(ftrCode, extractedAmount) {
 	};
 }
 
+// compliance_events.document_type is stored as "Import Permit" (with a
+// space) everywhere else in the compliance domain — see
+// compliance/marketRequirements.js's requiredDocuments and the column's own
+// comment in supabase/migrations/0001_init_schema.sql. DIGITALIZACAO's own
+// classified_doc_type enum uses the JS-identifier-style 'ImportPermit'
+// instead, so it needs remapping before it can match a row; ACID already
+// matches as-is.
+const COMPLIANCE_EVENT_DOCUMENT_TYPE_BY_DOC_TYPE = {
+	ACID: 'ACID',
+	ImportPermit: 'Import Permit',
+};
+
 async function checkComplianceDocAgainstEvents(ftrCode, docType, extractedExpiryDate) {
+	const eventDocumentType = COMPLIANCE_EVENT_DOCUMENT_TYPE_BY_DOC_TYPE[docType] || docType;
 	const { data, error } = await supabase
 		.from(TABLES.COMPLIANCE_EVENTS)
 		.select('expiry_date')
 		.eq('ftr_code', ftrCode)
-		.eq('document_type', docType)
+		.eq('document_type', eventDocumentType)
 		.maybeSingle();
 
 	if (error || !data) {

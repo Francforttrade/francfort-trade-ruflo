@@ -116,6 +116,24 @@ describe('digitalizacao entityResolution', () => {
 			expect(relationshipsBuilder.insert).toHaveBeenCalled();
 		});
 
+		test('a Supabase error resolves as "unknown" (inconclusive), not "new", and is NOT recorded', async () => {
+			const blBuilder = makeQueryBuilder({ single: { data: null, error: { message: 'network timeout' } } });
+			const relationshipsBuilder = makeQueryBuilder();
+			mockSupabaseWith({ [TABLES.BL_DOCUMENTS]: blBuilder, [TABLES.DOCUMENT_RELATIONSHIPS]: relationshipsBuilder });
+			const { resolveEntity } = require('./entityResolution');
+
+			const result = await resolveEntity({
+				ftrCode: '03075-26',
+				classifiedDocType: 'BL',
+				extractedFields: { bl_number: 'MAE12345678' },
+			});
+
+			expect(result.status).toBe('unknown');
+			expect(result.confidence).toBe(0);
+			expect(result.persisted).toBe(false);
+			expect(relationshipsBuilder.insert).not.toHaveBeenCalled();
+		});
+
 		test('a SWIFT ref already tied to a different FTR resolves as "ambiguous" and is NOT recorded', async () => {
 			const paymentsBuilder = makeQueryBuilder({ single: { data: { ftr_code: '03080-26' }, error: null } });
 			const relationshipsBuilder = makeQueryBuilder();

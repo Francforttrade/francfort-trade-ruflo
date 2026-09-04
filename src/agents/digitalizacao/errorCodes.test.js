@@ -7,7 +7,7 @@ describe('digitalizacao errorCodes', () => {
 				hasFieldConflict: true,
 				hasEntityAmbiguous: true,
 				extractionMethod: null,
-				isReviewBand: true,
+				confidenceBand: 'review_required',
 			});
 			expect(code).toBe(ERROR_CODES.FIELD_CONFLICT);
 		});
@@ -17,7 +17,7 @@ describe('digitalizacao errorCodes', () => {
 				hasFieldConflict: false,
 				hasEntityAmbiguous: true,
 				extractionMethod: null,
-				isReviewBand: true,
+				confidenceBand: 'review_required',
 			});
 			expect(code).toBe(ERROR_CODES.ENTITY_AMBIGUOUS);
 		});
@@ -27,7 +27,7 @@ describe('digitalizacao errorCodes', () => {
 				hasFieldConflict: false,
 				hasEntityAmbiguous: false,
 				extractionMethod: null,
-				isReviewBand: true,
+				confidenceBand: 'review_required',
 			});
 			expect(code).toBe(ERROR_CODES.OCR_NOT_AVAILABLE);
 		});
@@ -37,7 +37,7 @@ describe('digitalizacao errorCodes', () => {
 				hasFieldConflict: false,
 				hasEntityAmbiguous: false,
 				extractionMethod: null,
-				isReviewBand: true,
+				confidenceBand: 'review_required',
 				fileFailureReason: 'password_protected',
 			});
 			expect(code).toBe(ERROR_CODES.PASSWORD_PROTECTED);
@@ -48,7 +48,7 @@ describe('digitalizacao errorCodes', () => {
 				hasFieldConflict: false,
 				hasEntityAmbiguous: false,
 				extractionMethod: null,
-				isReviewBand: true,
+				confidenceBand: 'review_required',
 				fileFailureReason: 'corrupted',
 			});
 			expect(code).toBe(ERROR_CODES.CORRUPTED_FILE);
@@ -59,7 +59,7 @@ describe('digitalizacao errorCodes', () => {
 				hasFieldConflict: false,
 				hasEntityAmbiguous: false,
 				extractionMethod: 'text_layer',
-				isReviewBand: true,
+				confidenceBand: 'review_required',
 			});
 			expect(code).toBe(ERROR_CODES.LOW_EXTRACTION_CONFIDENCE);
 		});
@@ -69,7 +69,7 @@ describe('digitalizacao errorCodes', () => {
 				hasFieldConflict: false,
 				hasEntityAmbiguous: false,
 				extractionMethod: 'text_layer',
-				isReviewBand: false,
+				confidenceBand: 'auto_accept',
 			});
 			expect(code).toBeNull();
 		});

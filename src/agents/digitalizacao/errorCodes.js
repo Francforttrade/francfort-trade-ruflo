@@ -1,3 +1,5 @@
+const { isReviewBand } = require('./confidenceScoring');
+
 // docs/RDIA_PRD.md §23 — Error Contract. These codes are what gets encoded
 // into the errorMsg passed to EXCECOES (see index.js), so a human reading
 // the DLQ/escalation knows exactly what kind of review is needed.
@@ -25,7 +27,13 @@ const ERROR_CODES = {
 // Priority order matters: a field conflict or an ambiguous entity match is a
 // more specific, more actionable diagnosis than a generic low-confidence
 // band, so those are picked first when more than one condition is true.
-function pickErrorCode({ hasFieldConflict, hasEntityAmbiguous, extractionMethod, isReviewBand, fileFailureReason }) {
+// hasFieldConflict/hasEntityAmbiguous come straight from
+// confidenceScoring.js's scoreConfidence() return (has_field_conflict/
+// has_entity_ambiguous) — never re-derived here — and confidenceBand is
+// classified via that same module's isReviewBand, so this file and
+// confidenceScoring.js can't silently drift apart on what counts as
+// review-worthy.
+function pickErrorCode({ hasFieldConflict, hasEntityAmbiguous, extractionMethod, confidenceBand, fileFailureReason }) {
 	if (hasFieldConflict) {
 		return ERROR_CODES.FIELD_CONFLICT;
 	}
@@ -41,7 +49,7 @@ function pickErrorCode({ hasFieldConflict, hasEntityAmbiguous, extractionMethod,
 		}
 		return ERROR_CODES.OCR_NOT_AVAILABLE;
 	}
-	if (isReviewBand) {
+	if (isReviewBand(confidenceBand)) {
 		return ERROR_CODES.LOW_EXTRACTION_CONFIDENCE;
 	}
 	return null;

@@ -212,6 +212,25 @@ describe('digitalizacao crossValidation', () => {
 			expect(phytoCheck.result).toBe('match');
 		});
 
+		test('ImportPermit is queried against compliance_events as "Import Permit" (with a space), not the JS-style enum value', async () => {
+			const complianceBuilder = makeQueryBuilder({ single: { data: { expiry_date: '2026-11-15' }, error: null } });
+			mockSupabaseWith({
+				[TABLES.FTR]: makeQueryBuilder({ single: { data: { ftr_code: '03075-26' }, error: null } }),
+				[TABLES.COMPLIANCE_EVENTS]: complianceBuilder,
+			});
+			const { validateExtraction } = require('./crossValidation');
+
+			const result = await validateExtraction({
+				ftrCode: '03075-26',
+				classifiedDocType: 'ImportPermit',
+				extractedFields: { expiry_date: '2026-11-15' },
+			});
+
+			expect(complianceBuilder.eq).toHaveBeenCalledWith('document_type', 'Import Permit');
+			const complianceCheck = result.find((c) => c.check === 'compliance_doc_matches_event_record');
+			expect(complianceCheck.result).toBe('match');
+		});
+
 		test('unrelated doc types only run the FTR existence check', async () => {
 			mockSupabaseWith({
 				[TABLES.FTR]: makeQueryBuilder({ single: { data: { ftr_code: '03075-26' }, error: null } }),

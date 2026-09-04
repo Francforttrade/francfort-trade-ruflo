@@ -32,7 +32,31 @@ async function resolveEntity({ ftrCode, classifiedDocType, extractedFields }) {
 
 	const { data, error } = await supabase.from(lookup.table).select(`${lookup.idColumn}, ftr_code`).eq(lookup.idColumn, entityId).maybeSingle();
 
-	const status = error ? 'new' : classifyEntityMatch(data, ftrCode);
+	// A query error (network blip, transient DB issue) is inconclusive, not
+	// evidence this is a new entity — same reasoning as crossValidation.js's
+	// checkFtrExists. Treating it as 'new' would persist a confident
+	// BELONGS_TO relationship from a lookup that never actually happened,
+	// potentially masking a real cross-FTR conflict that a retry would have
+	// caught.
+	if (error) {
+		logger.warn('DIGITALIZACAO: falha ao consultar entidade para resolução, tratando como inconclusivo', {
+			ftrCode,
+			entityType: lookup.entityType,
+			entityId,
+			error: error.message,
+		});
+		return {
+			relationship_id: randomUUID(),
+			source_entity: { type: lookup.entityType, id: entityId },
+			relationship: 'BELONGS_TO',
+			target_entity: { type: 'ftr', id: ftrCode },
+			confidence: 0,
+			status: 'unknown',
+			persisted: false,
+		};
+	}
+
+	const status = classifyEntityMatch(data, ftrCode);
 	const relationship = {
 		relationship_id: randomUUID(),
 		source_entity: { type: lookup.entityType, id: entityId },

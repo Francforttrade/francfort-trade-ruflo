@@ -17,6 +17,15 @@ const CONFIDENCE_BANDS = {
 const REGEX_MATCH_CONFIDENCE = 0.9;
 const REGEX_NO_MATCH_CONFIDENCE = 0;
 
+// Fields that the current regex-only extractors never populate by design
+// (see billOfLadingExtractor.js's comment on consignee_address — a full
+// postal address doesn't resolve reliably from one regex capture, and needs
+// the structured OCR/Document AI path instead). Scoring them like any other
+// field would drag *every* document of that type down to candidate_only
+// regardless of how well everything else extracted — that's a known,
+// expected gap, not evidence this particular document is unreliable.
+const UNSCOREABLE_FIELDS = new Set(['table_rows', 'consignee_address']);
+
 function classifyBand(confidence, thresholds) {
 	if (confidence >= thresholds.autoAccept) {
 		return CONFIDENCE_BANDS.AUTO_ACCEPT;
@@ -38,16 +47,11 @@ function isReviewBand(band) {
 // when cross-validation found a mismatch, OR entity resolution found an
 // ambiguous match — a confident extraction of a value that contradicts
 // another source is not something to auto-accept just because the OCR/regex
-// itself was sure of what it read.
-// Fields that the current regex-only extractors never populate by design
-// (see billOfLadingExtractor.js's comment on consignee_address — a full
-// postal address doesn't resolve reliably from one regex capture, and needs
-// the structured OCR/Document AI path instead). Scoring them like any other
-// field would drag *every* document of that type down to candidate_only
-// regardless of how well everything else extracted — that's a known,
-// expected gap, not evidence this particular document is unreliable.
-const UNSCOREABLE_FIELDS = new Set(['table_rows', 'consignee_address']);
-
+// itself was sure of what it read. has_field_conflict/has_entity_ambiguous
+// are returned alongside needs_review (not just folded into the boolean) so
+// callers like errorCodes.js's pickErrorCode can pick a specific error code
+// without re-deriving the same checks from crossValidation/entityStatus
+// themselves — one source of truth for what triggered the review.
 function scoreConfidence({ classification, extractedFields, crossValidation = [], entityStatus = null, thresholds }) {
 	const fieldConfidence = {};
 	const fieldConfidenceValues = [];
@@ -75,6 +79,8 @@ function scoreConfidence({ classification, extractedFields, crossValidation = []
 		overall_confidence: overallConfidence,
 		confidence_band: overallBand,
 		needs_review: isReviewBand(overallBand) || hasFieldConflict || hasEntityAmbiguous,
+		has_field_conflict: hasFieldConflict,
+		has_entity_ambiguous: hasEntityAmbiguous,
 	};
 }
 
