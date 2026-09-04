@@ -5,21 +5,53 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/ruflo:$SHORT_SHA']
 
-  # Secret names below match docs/ROADMAP.md's Secret Manager checklist.
-  # Create them once with `gcloud secrets create <name>` before the first
-  # deploy — see DEPLOY.md.
+  # PaddleOCR worker (docs/RDIA_PRD.md chunk 2a, services/paddleocr/) — a
+  # separate image/service because it's Python, not Node.
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/ruflo-paddleocr:$SHORT_SHA', './services/paddleocr']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/ruflo-paddleocr:$SHORT_SHA']
+
+  # Deploy the PaddleOCR worker first, and PRIVATE (--no-allow-unauthenticated
+  # — see docs/RDIA_PRD.md section E): the only caller is the main `ruflo`
+  # service, authenticated with its own IAM identity, never the public
+  # internet. It has to exist before the step below can look up its URL.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - run
       - deploy
-      - ruflo
-      - --image=gcr.io/$PROJECT_ID/ruflo:$SHORT_SHA
+      - ruflo-paddleocr
+      - --image=gcr.io/$PROJECT_ID/ruflo-paddleocr:$SHORT_SHA
       - --region=southamerica-east1
       - --platform=managed
-      - --allow-unauthenticated
-      - --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID
-      - --set-secrets=ANTHROPIC_API_KEY=francfort-anthropic-api-key:latest,SUPABASE_URL=francfort-supabase-url:latest,SUPABASE_KEY=francfort-supabase-key:latest,SUPABASE_SERVICE_KEY=francfort-supabase-service-key:latest,WEBHOOK_SHARED_SECRET=francfort-whatsapp-webhook-secret:latest
+      - --no-allow-unauthenticated
+      - --memory=2Gi
+      - --cpu=2
+      - --timeout=120
+
+  # Secret names below match docs/ROADMAP.md's Secret Manager checklist.
+  # Create them once with `gcloud secrets create <name>` before the first
+  # deploy — see DEPLOY.md. PADDLE_OCR_SERVICE_URL is looked up at deploy
+  # time (bash entrypoint, since it only exists once the step above has run)
+  # rather than hardcoded.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        PADDLE_OCR_URL=$$(gcloud run services describe ruflo-paddleocr \
+          --region=southamerica-east1 --platform=managed --format='value(status.url)')
+        gcloud run deploy ruflo \
+          --image=gcr.io/$PROJECT_ID/ruflo:$SHORT_SHA \
+          --region=southamerica-east1 \
+          --platform=managed \
+          --allow-unauthenticated \
+          --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,PADDLE_OCR_SERVICE_URL=$${PADDLE_OCR_URL} \
+          --set-secrets=ANTHROPIC_API_KEY=francfort-anthropic-api-key:latest,SUPABASE_URL=francfort-supabase-url:latest,SUPABASE_KEY=francfort-supabase-key:latest,SUPABASE_SERVICE_KEY=francfort-supabase-service-key:latest,WEBHOOK_SHARED_SECRET=francfort-whatsapp-webhook-secret:latest
 
 images:
   - 'gcr.io/$PROJECT_ID/ruflo:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/ruflo-paddleocr:$SHORT_SHA'

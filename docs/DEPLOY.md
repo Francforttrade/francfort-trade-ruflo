@@ -51,7 +51,37 @@ disparado por um trigger conectado a este repositório):
 GCP_PROJECT_ID=<PROJECT_ID> bash scripts/deploy-cloud-run.sh
 ```
 
-## 6. Gmail intake (Apps Script)
+## 6. PaddleOCR worker (docs/RDIA_PRD.md chunk 2a)
+
+Serviço Cloud Run separado (`services/paddleocr/`), buildado/deployado pelo
+mesmo `cloudbuild.yaml` (agora com 2 imagens). Passos únicos que o Cloud
+Build **não** faz sozinho:
+
+```bash
+# 1. Conceder à service account do ruflo (o serviço principal) permissão
+#    para invocar o worker PaddleOCR (privado, sem --allow-unauthenticated).
+gcloud run services add-iam-policy-binding ruflo-paddleocr \
+	--region=southamerica-east1 \
+	--member="serviceAccount:<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" \
+	--role="roles/run.invoker" \
+	--project=<PROJECT_ID>
+```
+
+O `cloudbuild.yaml` já deploya `ruflo-paddleocr` antes de `ruflo` e passa a
+URL resultante como `PADDLE_OCR_SERVICE_URL` automaticamente — não precisa
+setar essa env var manualmente em deploys via Cloud Build. Para rodar
+`scripts/deploy-cloud-run.sh` manualmente (fora do Cloud Build), configure
+`PADDLE_OCR_SERVICE_URL` você mesmo com a URL do `gcloud run services
+describe ruflo-paddleocr --format='value(status.url)'`.
+
+**Não validado neste ambiente:** nem o `docker build` do
+`services/paddleocr/Dockerfile` nem os passos de `gcloud run deploy` acima
+foram executados de verdade (mesma limitação de rede já registrada para o
+Dockerfile raiz). O que foi validado: `services/paddleocr/app.py` importa
+sem erros e responde corretamente a `/health` e a entradas inválidas — ver
+`services/paddleocr/README.md`.
+
+## 7. Gmail intake (Apps Script)
 
 Fallback de intake por Gmail, ver `apps-script/gmail-intake/README.md` para
 o passo a passo completo de deploy (`clasp`) e configuração. Requer conceder

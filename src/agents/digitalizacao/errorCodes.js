@@ -15,9 +15,12 @@ const ERROR_CODES = {
 	ENTITY_AMBIGUOUS: 'ENTITY_AMBIGUOUS',
 	SECURITY_BLOCK: 'SECURITY_BLOCK',
 	TIMEOUT: 'TIMEOUT',
-	// Rúflo extensions — not in the PRD's minimum list, needed because
-	// PaddleOCR/Document AI aren't wired yet (chunks 2a/2b):
-	// no text layer and no OCR worker to fall back to.
+	// Rúflo extensions — not in the PRD's minimum list. OCR_NOT_AVAILABLE
+	// covers three cases that don't warrant their own code: the mimeType
+	// isn't something OCR can read (e.g. legacy .doc), PADDLE_OCR_SERVICE_URL
+	// isn't configured yet, or the per-FTR/per-day OCR call cap
+	// (rateLimiter.js) was hit — "no OCR budget available right now" reads
+	// the same to a human reviewer as "no OCR worker at all".
 	OCR_NOT_AVAILABLE: 'OCR_NOT_AVAILABLE',
 	// confidence below the review threshold with nothing more specific to
 	// blame (no cross-validation mismatch, no entity ambiguity).
@@ -46,6 +49,12 @@ function pickErrorCode({ hasFieldConflict, hasEntityAmbiguous, extractionMethod,
 		}
 		if (fileFailureReason === 'corrupted') {
 			return ERROR_CODES.CORRUPTED_FILE;
+		}
+		if (fileFailureReason === 'ocr_failed') {
+			return ERROR_CODES.OCR_FAILED;
+		}
+		if (fileFailureReason === 'ocr_low_confidence') {
+			return ERROR_CODES.OCR_LOW_CONFIDENCE;
 		}
 		return ERROR_CODES.OCR_NOT_AVAILABLE;
 	}

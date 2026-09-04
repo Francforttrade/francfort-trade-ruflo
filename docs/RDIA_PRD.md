@@ -3,7 +3,7 @@
 **Nome técnico:** Rúflo Document Intelligence Agent — RDIA
 **Módulo no código:** `src/agents/digitalizacao/` (12º agente do orquestrador — ver `docs/ROADMAP.md`)
 **Versão:** 1.0
-**Status:** Chunk 1 (parsing determinístico + contrato base) e Chunk 3 (Entity Resolution, regra de conflito, confidence de 4 faixas, integração de erro com EXCECOES) implementados. Chunks 2a/2b (PaddleOCR/Document AI) e 4 (provenance por campo, event bus, auditoria) seguem no roadmap ao final deste documento.
+**Status:** Chunks 1 (parsing determinístico + contrato base), 3 (Entity Resolution, regra de conflito, confidence de 4 faixas, integração de erro com EXCECOES) e 2a (worker PaddleOCR, cache de dedup, teto de chamadas) implementados. Chunk 2b (Document AI) e 4 (provenance por campo, event bus, auditoria) seguem no roadmap ao final deste documento.
 
 Cada seção abaixo mantém a especificação original e adiciona uma nota **🔧 Realidade Rúflo** apontando exatamente onde o código atual já atende o contrato, onde precisa mudar, e que infraestrutura nova (se houver) o item exige. O objetivo é que este PRD sirva tanto de visão de produto quanto de plano de engenharia executável sobre a base que já existe.
 
@@ -17,7 +17,7 @@ O agente deve privilegiar extração determinística e OCR local/open source, ut
 
 **Princípio:** `Parser → OCR → regras → modelo leve → LLM somente quando necessário.`
 
-**🔧 Realidade Rúflo:** já implementado. `structuredFileExtractor.js` (XLSX/DOCX) e `textLayerDetector.js` (PDF) cobrem "Parser"; `extractors/*.js` cobrem "regras"; PaddleOCR e o degrau de LLM ainda não existem no código (chunks 2a/2b — ver §17 e §27).
+**🔧 Realidade Rúflo:** já implementado, incluindo o degrau de OCR. `structuredFileExtractor.js` (XLSX/DOCX) e `textLayerDetector.js` (PDF) cobrem "Parser"; `extractors/*.js` cobrem "regras"; `services/paddleocr/` + `ocrClient.js` cobrem "OCR" (Chunk 2a). Só o degrau de LLM (item 6/7 de §17) segue não implementado.
 
 ---
 
@@ -93,17 +93,17 @@ DOCUMENTO
 | Estágio | Módulo hoje | Situação |
 |---|---|---|
 | 01 Ingestion | rota `POST /digitalizar-doc` → `master.route()` | ✅ feito |
-| 02 File Classifier | `structuredFileExtractor.isStructuredMimeType` + `textLayerDetector` + `costTiering` | ✅ feito para free/cheap; PaddleOCR (worker real) é chunk 2a |
-| 03 Text Normalization | — | ❌ não existe ainda (§ nova, ver nota abaixo) |
+| 02 File Classifier | `structuredFileExtractor.isStructuredMimeType` + `textLayerDetector` + `costTiering` + `ocrClient.js` | ✅ feito — PaddleOCR real (`services/paddleocr/`) cobre o tier `cheap` |
+| 03 Text Normalization | — | ❌ não existe ainda — ver nota abaixo (o texto do PaddleOCR vai direto pro classificador sem normalização) |
 | 04 Document Classifier | `docClassifier.js` | ✅ feito (heurística por keyword; sem fallback de visão ainda) |
 | 05 Semantic Chunking | — | ❌ não existe — Chunk 1 extrai do texto inteiro, não por chunk hierárquico (ver §7/§8) |
 | 06 Field Extraction | `extractors/*.js` | ✅ feito para os 9 tipos de documento cobertos |
-| 07 Validation | `confidenceScoring.js` | ⚠️ parcial — falta detecção de conflito entre fontes (§24) |
-| 08 Entity Resolution | — | ❌ não existe — era o "Chunk 3" do plano anterior; precisa desenhar como grafo (§11/§12) |
-| 09 Confidence Engine | `confidenceScoring.js` | ⚠️ parcial — usa 1 threshold único (0.75); PRD pede 4 faixas (§13) |
+| 07 Validation | `confidenceScoring.js` + `crossValidation.js` | ✅ feito (Chunk 3) — conflito entre fontes vira `FIELD_CONFLICT` (§24) |
+| 08 Entity Resolution | `entityResolution.js` | ✅ feito (Chunk 3) — BL/Invoice/SWIFT contra os registros já persistidos (§11/§12) |
+| 09 Confidence Engine | `confidenceScoring.js` | ✅ feito (Chunk 3) — 4 faixas nomeadas, configuráveis por env var (§13) |
 | 10 Event Bus | `master.route()` síncrono | ❌ não existe pub/sub — ver §14/§26 para a decisão de infraestrutura |
 
-"Text Normalization" (03) é o único estágio sem nenhum equivalente hoje: normalização de encoding/whitespace/OCR artifacts antes da classificação. É barato de adicionar (função pura) e deve entrar no mesmo chunk que o worker de OCR (2a), já que é o resultado do OCR que mais precisa de normalização (texto de parser nativo já sai limpo).
+"Text Normalization" (03) segue sem nenhum equivalente: normalização de encoding/whitespace/artefatos de OCR antes da classificação. Com o PaddleOCR real (Chunk 2a) rodando, esta é a lacuna mais visível que sobrou do pipeline original — texto de scan tende a ter mais ruído que o de parser nativo, mas `docClassifier.js`/`extractors/*.js` ainda tratam os dois igual. Fica registrada como próxima extensão de baixo risco (função pura, sem infraestrutura nova), não bloqueante para o restante do Chunk 4.
 
 ---
 
@@ -417,7 +417,7 @@ Não traduzir o documento inteiro por padrão. Preservar `{original_value, norma
 
 Large LLM é fallback, nunca pipeline padrão.
 
-**🔧 Realidade Rúflo:** degraus 1-3 implementados exatamente nesta ordem (`dedupCache` planejado no chunk 2a, `structuredFileExtractor`/`textLayerDetector` = parser nativo, `extractors/*.js` = regex). Degrau 4 (PaddleOCR) = chunk 2a. Degraus 5-7 (modelo leve, small LLM, large LLM) **não estão no plano atual** — o Chunk 2b previa Google Document AI como "expensive tier", que tecnicamente já é um modelo especializado (não um LLM genérico) e deveria ficar entre os degraus 4 e 6 desta lista. Nenhum LLM genérico (Claude/GPT) está cotado neste pipeline hoje — `ANTHROPIC_API_KEY` existe no `.env.example` mas não é chamado por nenhum agente; permanece como fallback de último nível, não implementado, coerente com o princípio "Large LLM só como último recurso".
+**🔧 Realidade Rúflo — degraus 1-4 implementados.** `dedupCache.js` (Firestore, TTL 90 dias) cobre o degrau 1; `structuredFileExtractor`/`textLayerDetector` = parser nativo (degrau 2); `extractors/*.js` = regex (degrau 3); `ocrClient.js` chamando `services/paddleocr/` = degrau 4 (PaddleOCR). A ordem é respeitada exatamente como especificado: `index.js`'s `tryOcr()` só chega no degrau 4 depois que os degraus 1-3 já falharam para aquele documento (sem camada de texto/estrutura), e só então verifica o cache e o teto de chamadas (`rateLimiter.js`) antes de pagar o custo de compute do worker. Degraus 5-7 (modelo leve, small LLM, large LLM) **não estão no plano atual** — o Chunk 2b previa Google Document AI como "expensive tier", que tecnicamente já é um modelo especializado (não um LLM genérico) e deveria ficar entre os degraus 4 e 6 desta lista. Nenhum LLM genérico (Claude/GPT) está cotado neste pipeline hoje — `ANTHROPIC_API_KEY` existe no `.env.example` mas não é chamado por nenhum agente; permanece como fallback de último nível, não implementado, coerente com o princípio "Large LLM só como último recurso".
 
 ---
 
@@ -425,7 +425,7 @@ Large LLM é fallback, nunca pipeline padrão.
 
 Em um PDF de 30 páginas, não rodar OCR nas 30 — detectar páginas sem texto e rodar OCR só nelas.
 
-**🔧 Realidade Rúflo:** o Chunk 1 decide **por documento inteiro** (`hasTextLayer` é um booleano único vindo de `pdf-parse`, que já concatena todas as páginas). Granularidade por página exige trocar `textLayerDetector.js` para iterar página a página (a lib `pdf-parse`/`pdfjs-dist` já expõe texto por página via `partial: [n]`, usado internamente) e só invocar o worker PaddleOCR nas páginas sem texto — puramente aditivo ao chunk 2a, sem redesenho de contrato.
+**🔧 Realidade Rúflo:** ainda decide **por documento inteiro**, mesmo com o worker PaddleOCR real (Chunk 2a) — `hasTextLayer` continua sendo um booleano único vindo de `pdf-parse`, que já concatena todas as páginas, e quando ele é `false` o documento inteiro (não só as páginas sem texto) vai para o PaddleOCR. Para um PDF verdadeiramente híbrido (algumas páginas com texto, outras escaneadas), hoje isso significa OCR desnecessário nas páginas que já tinham texto. Granularidade por página exige trocar `textLayerDetector.js` para iterar página a página (a lib `pdf-parse`/`pdfjs-dist` já expõe texto por página via `partial: [n]`, usado internamente) e só invocar o worker PaddleOCR nas páginas sem texto — puramente aditivo à implementação atual, sem redesenho de contrato, mas não foi feito nesta rodada (baixa prioridade: a maioria dos documentos do Rúflo tem 1-2 páginas de um tipo só).
 
 ---
 
@@ -488,7 +488,8 @@ Códigos mínimos: `UNSUPPORTED_FILE, CORRUPTED_FILE, PASSWORD_PROTECTED, OCR_FA
 
 **🔧 Realidade Rúflo — implementado (Chunk 3), com 2 extensões.** `errorCodes.js` traz a lista completa do PRD, mais dois códigos Rúflo-específicos documentados no próprio arquivo: `OCR_NOT_AVAILABLE` (sem camada de texto e sem worker de OCR ainda — chunks 2a/2b) e `LOW_EXTRACTION_CONFIDENCE` (banda baixa sem nada mais específico a apontar). `pickErrorCode` prioriza `FIELD_CONFLICT` > `ENTITY_AMBIGUOUS` > `OCR_NOT_AVAILABLE` > `LOW_EXTRACTION_CONFIDENCE`. O agente **continua nunca lançando exceção nem retornando `status: failed`** para esses casos — ele degrada para `needs_review: true` com um resultado válido e só *adicionalmente* chama `excecoes.process({action: 'record_failure', ftrCode, agent: 'digitalizacao', errorMsg: '<CODE>: <detalhe>', retryCount: MAX_RETRIES})`. `retryCount` é passado já no teto (`excecoes/backoff.js`'s `MAX_RETRIES`) de propósito: reprocessar o mesmo documento produz o mesmo resultado, então agendar um retry não ajudaria — vai direto para DLQ + escalação.
 `PASSWORD_PROTECTED`/`CORRUPTED_FILE` já são acionáveis para PDF: `textLayerDetector.js`'s `classifyPdfParseError` distingue uma exceção de PDF criptografado (`PasswordException`, do pdfjs-dist por baixo do `pdf-parse`) de qualquer outra falha de parsing (`corrupted`) — sem essa distinção, os dois casos caíam no mesmo `OCR_NOT_AVAILABLE` genérico de um scan legítimo sem texto, o que confundiria quem for revisar a fila do EXCECOES (achado de revisão de código, corrigido antes do primeiro commit).
-Códigos ainda não acionáveis nesta implementação porque dependem de estágios futuros: `UNSUPPORTED_FILE` (validação de mimeType/tamanho, chunk 4), `OCR_FAILED`/`OCR_LOW_CONFIDENCE` (precisam do worker real, chunk 2a/2b), `LANGUAGE_UNSUPPORTED` (§16), `TIMEOUT`, `SECURITY_BLOCK`.
+`OCR_FAILED`/`OCR_LOW_CONFIDENCE` também já são acionáveis (Chunk 2a): `index.js`'s `tryOcr()` distingue uma chamada ao PaddleOCR que falhou de verdade (`OCR_FAILED`) de uma que retornou texto mas com confiança abaixo de `DIGITALIZACAO_OCR_MIN_CONFIDENCE` (`OCR_LOW_CONFIDENCE`, padrão 0.5) — nesse segundo caso o texto nem chega a ser classificado/extraído, pois um resultado de OCR pouco confiável não vale a pena tentar interpretar. O teto de chamadas (`rateLimiter.js`) sendo atingido cai em `OCR_NOT_AVAILABLE`, não num código próprio — ver o comentário em `errorCodes.js`.
+Códigos ainda não acionáveis nesta implementação porque dependem de estágios futuros: `UNSUPPORTED_FILE` (validação de mimeType/tamanho, chunk 4), `LANGUAGE_UNSUPPORTED` (§16), `TIMEOUT`, `SECURITY_BLOCK`.
 
 ---
 
@@ -517,7 +518,7 @@ e dispara `document.review.required`.
 
 Mesmo documento recebido duas vezes não pode gerar duas operações. Fingerprint = `SHA-256 + file size + normalized content hash`. Resultado: `DOCUMENT ALREADY PROCESSED` → recupera resultado existente, não roda OCR, não consome LLM.
 
-**🔧 Realidade Rúflo:** parcialmente implementado por desenho — `contentHash.js` já calcula o SHA-256 dos bytes, e o cache por hash (`digitalizacao_cache`, chunk 2a) já é exatamente este mecanismo. O que falta: (a) o cache ainda não foi implementado (é o próximo chunk, não este PRD que muda isso); (b) "file size" e "normalized content hash" como componentes adicionais do fingerprint não são necessários — SHA-256 dos bytes já é suficiente para deduplicar (dois arquivos com hash igual são byte-idênticos, size incluso); manter o fingerprint simples (só o hash) evita complexidade sem ganho real de correção.
+**🔧 Realidade Rúflo — implementado (Chunk 2a), com uma diferença de escopo deliberada.** `contentHash.js` calcula o SHA-256 dos bytes, e `dedupCache.js` (coleção `digitalizacao_cache`, TTL 90 dias) é exatamente este mecanismo — mas cacheia especificamente a **saída da extração** (`extractedText`/`tableRows`), não uma flag "já processado". Isso significa que um hash repetido pula o PaddleOCR (o custo que importa evitar), mas ainda passa de novo por classificação/extração/cross-validation/entity-resolution — necessário porque esses estágios dependem do `ftrCode`/contexto da requisição atual, não só dos bytes do arquivo (o mesmo documento pode legitimamente chegar sob FTRs diferentes, e cada ocorrência precisa da sua própria validação cruzada). "File size" e "normalized content hash" como componentes adicionais do fingerprint não foram adicionados — SHA-256 dos bytes já é suficiente para deduplicar sem a complexidade extra.
 
 ---
 
@@ -561,12 +562,12 @@ Não um agente monolítico — o Document Intelligence Agent é o orquestrador; 
 |---|---|
 | Document Orchestrator | `digitalizacao/index.js` |
 | File Parser | `structuredFileExtractor.js` + `textLayerDetector.js` |
-| OCR Worker | **serviço separado de fato** — `services/paddleocr/` (chunk 2a), o único componente que *precisa* ser um processo/deploy distinto, porque é Python |
+| OCR Worker | **serviço separado de fato, implementado** — `services/paddleocr/`, chamado por `ocrClient.js`; único componente que *precisa* ser um processo/deploy distinto, porque é Python |
 | Classifier | `docClassifier.js` |
 | Chunk Engine | não existe (§7) |
 | Field Extractor | `extractors/*.js` |
-| Validator | `confidenceScoring.js` (§13) |
-| Entity Resolution | não existe (§11) |
+| Validator | `confidenceScoring.js` + `crossValidation.js` (§13/§24) |
+| Entity Resolution | `entityResolution.js` (§11) |
 | Knowledge Layer | Supabase (`ftr`, `bookings`, `invoices`, `bl_documents` + nova `document_relationships`, §11) |
 | OPS / FINANCE / COMMERCIAL | agentes `logistics`, `financeiro`, `comercial` já existentes |
 
@@ -578,22 +579,22 @@ Não um agente monolítico — o Document Intelligence Agent é o orquestrador; 
 
 - [x] Receber PDF/DOCX/XLSX/imagem.
 - [x] Identificar automaticamente se OCR é necessário.
-- [ ] Executar PaddleOCR quando necessário. *(chunk 2a)*
+- [x] Executar PaddleOCR quando necessário *(`services/paddleocr/` + `ocrClient.js`, com dedup e teto de chamadas)*.
 - [ ] Detectar idioma. *(§16, não priorizado ainda)*
 - [x] Classificar o documento.
 - [ ] Criar chunks semânticos. *(§7, opcional até haver volume multi-página)*
 - [x] Extrair os campos definidos *(para os 9 tipos já cobertos por `extractors/*.js`)*.
 - [x] Associar documento ao FTR correto além do already-known `ftrCode` de entrada *(§11, `entityResolution.js`)*.
 - [x] Identificar Booking/BL/Invoice **entre documentos diferentes** *(§11 — BL/Invoice/SWIFT contra os registros já persistidos; Booking em si ainda não é um doc_type classificado, §9)*.
-- [ ] Registrar provenance por campo *(§6 — precisa de geometria/bounding box, que só o OCR real, chunk 2a/2b, devolve)*.
-- [x] Calcular confidence *(por campo e com as 4 faixas nomeadas, §13)*.
+- [ ] Registrar provenance por campo *(§6 — precisa de geometria/bounding box por campo; o PaddleOCR hoje só devolve confiança geral do texto, não por palavra/bloco — extensão de `services/paddleocr/app.py` + reshape do output, chunk 4)*.
+- [x] Calcular confidence *(por campo e com as 4 faixas nomeadas, §13; a confiança do PaddleOCR já gateia se o texto chega a ser classificado)*.
 - [x] Detectar conflitos *(§24, para os 4 checks já cobertos por `crossValidation.js`)*.
 - [ ] Publicar eventos Rúflo *(§14, decisão de infra pendente — Firestore `document_events`)*.
 - [x] Permitir consumo pelos demais agentes *(via `routed_to` + handoff externo)*.
-- [ ] Registrar auditoria e custo *(chunk 4 — `AUDIT_LOG`)*.
-- [ ] Evitar processamento duplicado *(§25 — cache por hash, chunk 2a)*.
+- [ ] Registrar auditoria e custo *(chunk 4 — `AUDIT_LOG`; o custo em si já é limitado por `rateLimiter.js`, mas não é registrado como métrica ainda)*.
+- [x] Evitar processamento duplicado *(§25 — `dedupCache.js`, cache por hash com TTL de 90 dias)*.
 
-**Chunks 1+3 (feitos) cobrem 9 dos 15 itens do MVP definido neste PRD.** Os itens restantes são: chunks 2a/2b (OCR real, dedup), chunk 4 (provenance por campo, event bus, auditoria), e chunking semântico (§7, backlog).
+**Chunks 1+2a+3 (feitos) cobrem 11 dos 15 itens do MVP definido neste PRD.** Os itens restantes são: chunk 2b (Document AI como refinamento), chunk 4 (provenance por campo, event bus, auditoria), detecção de idioma (§16) e chunking semântico (§7, backlog).
 
 ---
 
@@ -666,8 +667,8 @@ Isso evita o problema original: cada automação lendo booking, invoice, scan, c
 |---|---|---|---|
 | **1** | Contrato base, parser nativo (XLSX/DOCX/PDF texto), classificador por keyword, extractors dos 9 tipos | Não | ✅ Feito |
 | **3** | Entity Resolution real (§11/§12) + regra de conflito (§24) + confidence de 4 faixas (§13) + integração de erro com EXCECOES usando os códigos do §23 (`crossValidation.js`, `entityResolution.js`, `errorCodes.js`) | Não | ✅ Feito |
-| **2a** | Serviço PaddleOCR (worker Python/Cloud Run), cache de dedup por hash (§25), text normalization (§3) | Sim — deploy de novo serviço | Planejado |
+| **2a** | Serviço PaddleOCR (`services/paddleocr/`, worker Python/Cloud Run) + `ocrClient.js` + cache de dedup por hash (`dedupCache.js`, §25) + teto de chamadas (`rateLimiter.js`) | Sim — deploy do novo serviço + IAM invoker (código pronto, `docker build`/`gcloud run deploy` reais não executados neste ambiente — ver `docs/DEPLOY.md` item 6) | ✅ Código feito — deploy real pendente de você |
 | **2b** | Fallback Google Document AI | Sim — habilitar API GCP | Planejado |
-| **4** | Provenance por campo (§6), Event Bus via Firestore (§14), extensão do MONITOR (§21), hardening de segurança (`AUDIT_LOG`, PII) | Não | Planejado |
+| **4** | Provenance por campo (§6, precisa de bounding box por campo — extensão do worker PaddleOCR), Event Bus via Firestore (§14), extensão do MONITOR (§21), hardening de segurança (`AUDIT_LOG`, PII), text normalization (§3) | Não | Planejado |
 | **5 (novo)** | Ampliar cobertura de tipo de documento (§9) e resposta parcial por `requested_fields` (§15) | Não | Backlog |
-| **6 (novo, opcional)** | Chunking semântico (§7/§8) e suporte multilíngue (§16) | Não | Backlog — só se o volume/idioma real justificar |
+| **6 (novo, opcional)** | Chunking semântico (§7/§8), OCR seletivo por página (§18) e suporte multilíngue (§16) | Não | Backlog — só se o volume/idioma real justificar |

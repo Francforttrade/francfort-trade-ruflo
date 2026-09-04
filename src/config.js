@@ -31,6 +31,28 @@ const CONFIG = {
 		CONFIDENCE_AUTO_ACCEPT: Number(process.env.DIGITALIZACAO_CONFIDENCE_AUTO_ACCEPT) || 0.95,
 		CONFIDENCE_ACCEPT_FLAGGED: Number(process.env.DIGITALIZACAO_CONFIDENCE_ACCEPT_FLAGGED) || 0.8,
 		CONFIDENCE_REVIEW_REQUIRED: Number(process.env.DIGITALIZACAO_CONFIDENCE_REVIEW_REQUIRED) || 0.6,
+
+		// Chunk 2a — PaddleOCR worker (services/paddleocr/), a private
+		// Cloud Run service reached via ocrClient.js with an IAM identity
+		// token, never a public endpoint.
+		PADDLE_OCR_SERVICE_URL: process.env.PADDLE_OCR_SERVICE_URL || null,
+		OCR_TIMEOUT_MS: Number(process.env.DIGITALIZACAO_OCR_TIMEOUT_MS) || 30000,
+		// Below this, PaddleOCR's own reported confidence means the text isn't
+		// worth classifying/extracting from at all — see errorCodes.js's
+		// OCR_LOW_CONFIDENCE and index.js's use of it.
+		OCR_MIN_CONFIDENCE: Number(process.env.DIGITALIZACAO_OCR_MIN_CONFIDENCE) || 0.5,
+		// content_hash -> {extractedText, tableRows} dedup cache
+		// (dedupCache.js) — skips paying for OCR again on a re-sent/
+		// reprocessed attachment. 90 days covers a full FTR lifecycle
+		// (docs/ROADMAP.md's cycle-time KPI is measured in weeks).
+		CACHE_TTL_DAYS: Number(process.env.DIGITALIZACAO_CACHE_TTL_DAYS) || 90,
+		// Per-FTR/per-day caps on OCR worker calls (rateLimiter.js) — Paddle
+		// itself has no per-call $ cost (self-hosted), but a cap still bounds
+		// how hard one FTR (or one bad day) can hit the worker's compute
+		// capacity, and doubles as the cap Chunk 2b's Document AI fallback
+		// will reuse once that *is* a paid call.
+		MAX_PAID_CALLS_PER_FTR: Number(process.env.DIGITALIZACAO_MAX_PAID_CALLS_PER_FTR) || 20,
+		MAX_PAID_CALLS_PER_DAY: Number(process.env.DIGITALIZACAO_MAX_PAID_CALLS_PER_DAY) || 500,
 	},
 };
 

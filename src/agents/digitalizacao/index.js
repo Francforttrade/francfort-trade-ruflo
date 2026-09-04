@@ -6,12 +6,15 @@ const { computeContentHash } = require('./contentHash');
 const { isStructuredMimeType, extractStructuredFile } = require('./structuredFileExtractor');
 const { detectTextLayer } = require('./textLayerDetector');
 const { classifyDocument } = require('./docClassifier');
-const { decideInitialTier } = require('./costTiering');
+const { decideInitialTier, isOcrEligibleMimeType } = require('./costTiering');
 const { extractFields } = require('./extractors');
 const { scoreConfidence } = require('./confidenceScoring');
 const { validateExtraction } = require('./crossValidation');
 const { resolveEntity } = require('./entityResolution');
 const { pickErrorCode, buildErrorMessage } = require('./errorCodes');
+const { getCached, setCached } = require('./dedupCache');
+const { isUnderPaidCallCap, recordPaidCall } = require('./rateLimiter');
+const { runOcr } = require('./ocrClient');
 
 // Informational only — DIGITALIZACAO never calls these agents itself (see
 // docs/RDIA_PRD.md's reconciliation of §14 and the original deadlock
@@ -72,15 +75,56 @@ function buildUnresolvedResult({ ftrCode, contentHash, costTier }) {
 	};
 }
 
+// Tries PaddleOCR (chunk 2a) for a scanned image or a PDF with no usable
+// text layer: dedup cache first (skip paying for OCR on a re-sent
+// attachment), then the per-FTR/per-day call cap, then the worker itself.
+// Mutates nothing — returns {extractedText, tableRows, extractionMethod,
+// failureReason, costTier} so the caller decides what to do next.
+// costTier reflects what was actually incurred: 'free' whenever the worker
+// was never actually called (ineligible mimeType, cache hit, capped), and
+// 'cheap' whenever it was, whether or not the call itself succeeded.
+async function tryOcr({ ftrCode, contentHash, mimeType, fileBase64 }) {
+	if (!isOcrEligibleMimeType(mimeType)) {
+		return { extractedText: null, tableRows: null, extractionMethod: null, failureReason: null, costTier: 'free' };
+	}
+
+	const cached = await getCached(contentHash);
+	if (cached) {
+		return {
+			extractedText: cached.extractedText,
+			tableRows: cached.tableRows,
+			extractionMethod: 'cache_hit',
+			failureReason: null,
+			costTier: 'free',
+		};
+	}
+
+	if (!(await isUnderPaidCallCap(ftrCode))) {
+		logger.warn('DIGITALIZACAO: teto de chamadas de OCR atingido, degradando para revisão manual', { ftrCode });
+		return { extractedText: null, tableRows: null, extractionMethod: null, failureReason: null, costTier: 'free' };
+	}
+
+	const ocrResult = await runOcr({ fileBase64, mimeType });
+	await recordPaidCall(ftrCode);
+
+	if (!ocrResult || !ocrResult.text) {
+		return { extractedText: null, tableRows: null, extractionMethod: null, failureReason: 'ocr_failed', costTier: 'cheap' };
+	}
+	if (ocrResult.confidence != null && ocrResult.confidence < CONFIG.DIGITALIZACAO.OCR_MIN_CONFIDENCE) {
+		return { extractedText: null, tableRows: null, extractionMethod: null, failureReason: 'ocr_low_confidence', costTier: 'cheap' };
+	}
+
+	await setCached(contentHash, { extractedText: ocrResult.text, tableRows: null }, ftrCode);
+	return { extractedText: ocrResult.text, tableRows: null, extractionMethod: 'vision_ocr', failureReason: null, costTier: 'cheap' };
+}
+
 // DIGITALIZACAO: classify + extract structured fields from an incoming
 // document, cheapest option first (structured-file parse > PDF text layer >
-// OCR), then cross-validate against known business rules/records and
-// resolve it against any FTR entity it should link to. Chunk 1 wired the
-// zero-cost extraction paths; this chunk (3) adds cross-validation, entity
-// resolution and the 4-band confidence policy from docs/RDIA_PRD.md.
-// A scanned image or a PDF with no text layer is recognized but not yet
-// extracted (OCR arrives in chunk 2a/2b) — it comes back with
-// needs_review: true and an OCR_NOT_AVAILABLE escalation instead of failing.
+// PaddleOCR, chunk 2a > Document AI, chunk 2b — not yet wired), then
+// cross-validate against known business rules/records and resolve it
+// against any FTR entity it should link to (chunk 3), applying the 4-band
+// confidence policy from docs/RDIA_PRD.md and escalating to EXCECOES with a
+// specific error code whenever it needs human review.
 async function process(context) {
 	const { ftrCode, filename, mimeType, fileBase64, docTypeHint, market } = context;
 	const contentHash = computeContentHash(fileBase64);
@@ -88,7 +132,12 @@ async function process(context) {
 	let extractedText = null;
 	let tableRows = null;
 	let extractionMethod = null;
+	let costTierUsed = null;
 	let fileFailureReason = null;
+	// Only set once tryOcr() actually runs — stays null for a
+	// corrupted/password-protected file, since those are diagnosed before
+	// OCR is ever attempted and never incur its cost either way.
+	let ocrCostTier = null;
 
 	if (isStructuredMimeType(mimeType)) {
 		const structured = await extractStructuredFile({ fileBase64, mimeType });
@@ -96,6 +145,7 @@ async function process(context) {
 			extractedText = structured.text;
 			tableRows = structured.tableRows;
 			extractionMethod = 'structured_file';
+			costTierUsed = 'free';
 		} else {
 			// extractStructuredFile returns null only when XLSX.read/mammoth
 			// itself failed to parse the bytes — a corrupted file, not a
@@ -110,13 +160,33 @@ async function process(context) {
 		if (textLayer.hasTextLayer) {
 			extractedText = textLayer.extractedText;
 			extractionMethod = 'text_layer';
+			costTierUsed = 'free';
 		} else {
 			fileFailureReason = textLayer.failureReason;
 		}
 	}
 
+	if (!extractionMethod && !fileFailureReason) {
+		const ocr = await tryOcr({ ftrCode, contentHash, mimeType, fileBase64 });
+		ocrCostTier = ocr.costTier;
+		if (ocr.extractionMethod) {
+			extractedText = ocr.extractedText;
+			tableRows = ocr.tableRows;
+			extractionMethod = ocr.extractionMethod;
+			costTierUsed = ocr.costTier;
+		} else {
+			fileFailureReason = ocr.failureReason;
+		}
+	}
+
 	if (!extractionMethod) {
-		const costTier = decideInitialTier({ hasStructuredData: false, hasTextLayer: false });
+		// costTierUsed is only ever set alongside extractionMethod in the
+		// branches above, so reaching here means it's still null. Report
+		// whatever tryOcr() actually incurred (free if never called at all —
+		// ineligible mimeType, cache hit, capped — cheap if it was), or
+		// 'free' if we never even got that far (corrupted/password-protected
+		// file, diagnosed before OCR would have been attempted).
+		const costTier = ocrCostTier || 'free';
 		const code = pickErrorCode({ extractionMethod: null, fileFailureReason });
 		logger.warn('DIGITALIZACAO: sem camada de texto/estrutura utilizável — marcando para revisão', {
 			ftrCode,
@@ -128,7 +198,6 @@ async function process(context) {
 		return { ...buildUnresolvedResult({ ftrCode, contentHash, costTier }), escalated_to_excecoes: true };
 	}
 
-	const costTier = decideInitialTier({ hasStructuredData: extractionMethod === 'structured_file', hasTextLayer: true });
 	const classification = classifyDocument({ filename, text: extractedText, docTypeHint });
 	const extractedFields = extractFields(classification.docType, {
 		text: extractedText,
@@ -167,7 +236,7 @@ async function process(context) {
 		classified_doc_type: classification.docType,
 		classification_confidence: classification.confidence,
 		extraction_method: extractionMethod,
-		cost_tier_used: costTier,
+		cost_tier_used: costTierUsed,
 		extracted_fields: extractedFields,
 		field_confidence: fieldConfidence,
 		overall_confidence: overallConfidence,

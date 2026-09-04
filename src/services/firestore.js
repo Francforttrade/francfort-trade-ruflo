@@ -12,6 +12,8 @@ const COLLECTIONS = {
 	AUDIT_LOG: 'audit_log',
 	TEMP_DOCUMENTS: 'temp_documents',
 	FALHAS_PROCESSAMENTO: 'falhas_processamento',
+	DIGITALIZACAO_CACHE: 'digitalizacao_cache',
+	DIGITALIZACAO_RATE_LIMITS: 'digitalizacao_rate_limits',
 };
 
 module.exports = { firestore, COLLECTIONS };

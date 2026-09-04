@@ -6,10 +6,16 @@ const FTR_MATCH_CHECK = [{ check: 'ftr_code_exists_in_supabase', result: 'match'
 jest.mock('../excecoes', () => ({ process: jest.fn().mockResolvedValue({ agent: 'excecoes' }) }));
 jest.mock('./crossValidation', () => ({ validateExtraction: jest.fn() }));
 jest.mock('./entityResolution', () => ({ resolveEntity: jest.fn() }));
+jest.mock('./dedupCache', () => ({ getCached: jest.fn(), setCached: jest.fn() }));
+jest.mock('./rateLimiter', () => ({ isUnderPaidCallCap: jest.fn(), recordPaidCall: jest.fn() }));
+jest.mock('./ocrClient', () => ({ runOcr: jest.fn() }));
 
 const excecoes = require('../excecoes');
 const { validateExtraction } = require('./crossValidation');
 const { resolveEntity } = require('./entityResolution');
+const { getCached, setCached } = require('./dedupCache');
+const { isUnderPaidCallCap, recordPaidCall } = require('./rateLimiter');
+const { runOcr } = require('./ocrClient');
 const { process } = require('./index');
 
 async function buildInvoicePdfBase64() {
@@ -47,6 +53,11 @@ describe('digitalizacao agent', () => {
 		validateExtraction.mockReset().mockResolvedValue(FTR_MATCH_CHECK);
 		resolveEntity.mockReset().mockResolvedValue(null);
 		excecoes.process.mockClear();
+		getCached.mockReset().mockResolvedValue(null);
+		setCached.mockReset().mockResolvedValue(undefined);
+		isUnderPaidCallCap.mockReset().mockResolvedValue(true);
+		recordPaidCall.mockReset().mockResolvedValue(undefined);
+		runOcr.mockReset().mockResolvedValue(null);
 	});
 
 	test('extracts an invoice from a text-layer PDF at the free tier, routed to documentacao', async () => {
@@ -94,7 +105,7 @@ describe('digitalizacao agent', () => {
 		expect(result.extracted_fields.container_numbers).toEqual(['MAEU1234567']);
 	});
 
-	test('marks a scanned PDF (no text layer) for review and escalates OCR_NOT_AVAILABLE', async () => {
+	test('a scanned PDF (no text layer) attempts PaddleOCR, and a failed OCR call escalates OCR_FAILED', async () => {
 		const fileBase64 = await buildBlankPdfBase64();
 
 		const result = await process({
@@ -104,6 +115,8 @@ describe('digitalizacao agent', () => {
 			fileBase64,
 		});
 
+		expect(runOcr).toHaveBeenCalledWith(expect.objectContaining({ mimeType: 'application/pdf' }));
+		expect(recordPaidCall).toHaveBeenCalledWith('03075-26');
 		expect(result.extraction_method).toBeNull();
 		expect(result.cost_tier_used).toBe('cheap');
 		expect(result.classified_doc_type).toBeNull();
@@ -112,8 +125,82 @@ describe('digitalizacao agent', () => {
 		expect(result.escalated_to_excecoes).toBe(true);
 		expect(validateExtraction).not.toHaveBeenCalled();
 		expect(excecoes.process).toHaveBeenCalledWith(
-			expect.objectContaining({ ftrCode: '03075-26', agent: 'digitalizacao', errorMsg: expect.stringContaining('OCR_NOT_AVAILABLE') })
+			expect.objectContaining({ ftrCode: '03075-26', agent: 'digitalizacao', errorMsg: expect.stringContaining('OCR_FAILED') })
 		);
+	});
+
+	test('a low-confidence PaddleOCR result escalates OCR_LOW_CONFIDENCE instead of extracting from unreliable text', async () => {
+		runOcr.mockResolvedValue({ text: 'garbled nonsense', confidence: 0.1, pages: 1 });
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'application/pdf', filename: 'scan.pdf', fileBase64 });
+
+		expect(result.extraction_method).toBeNull();
+		expect(setCached).not.toHaveBeenCalled();
+		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('OCR_LOW_CONFIDENCE') }));
+	});
+
+	test('a successful PaddleOCR result extracts at the cheap tier and caches the text', async () => {
+		runOcr.mockResolvedValue({
+			text: 'Invoice Number: INV-2026-0100\nBuyer: Agrotrade Rus\nTotal: USD 50000.00',
+			confidence: 0.93,
+			pages: 1,
+		});
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'image/jpeg', filename: 'scan.jpg', fileBase64 });
+
+		expect(result.extraction_method).toBe('vision_ocr');
+		expect(result.cost_tier_used).toBe('cheap');
+		expect(result.classified_doc_type).toBe('Invoice');
+		expect(result.extracted_fields.invoice_number).toBe('INV-2026-0100');
+		expect(setCached).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({ extractedText: expect.stringContaining('INV-2026-0100') }),
+			'03075-26'
+		);
+	});
+
+	test('a dedup cache hit skips PaddleOCR entirely but still runs the rest of the pipeline', async () => {
+		getCached.mockResolvedValue({ extractedText: 'Invoice Number: INV-2026-0101\nBuyer: Acme', tableRows: null });
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'image/jpeg', filename: 'scan.jpg', fileBase64 });
+
+		expect(runOcr).not.toHaveBeenCalled();
+		expect(result.extraction_method).toBe('cache_hit');
+		expect(result.cost_tier_used).toBe('free');
+		expect(result.extracted_fields.invoice_number).toBe('INV-2026-0101');
+	});
+
+	test('hitting the per-FTR/per-day OCR call cap skips the worker and escalates OCR_NOT_AVAILABLE', async () => {
+		isUnderPaidCallCap.mockResolvedValue(false);
+		const fileBase64 = await buildBlankPdfBase64();
+
+		const result = await process({ ftrCode: '03075-26', mimeType: 'image/jpeg', filename: 'scan.jpg', fileBase64 });
+
+		expect(runOcr).not.toHaveBeenCalled();
+		expect(result.extraction_method).toBeNull();
+		// Never actually called the worker (capped before that), so no cost
+		// was incurred — reported as 'free', not 'cheap'.
+		expect(result.cost_tier_used).toBe('free');
+		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('OCR_NOT_AVAILABLE') }));
+	});
+
+	test('a mimeType OCR cannot read (legacy .doc) never touches the cache/rate-limiter/OCR worker', async () => {
+		const result = await process({
+			ftrCode: '03075-26',
+			mimeType: 'application/msword',
+			filename: 'legacy.doc',
+			fileBase64: Buffer.from('legacy doc bytes').toString('base64'),
+		});
+
+		expect(getCached).not.toHaveBeenCalled();
+		expect(isUnderPaidCallCap).not.toHaveBeenCalled();
+		expect(runOcr).not.toHaveBeenCalled();
+		expect(result.extraction_method).toBeNull();
+		expect(result.cost_tier_used).toBe('free');
+		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('OCR_NOT_AVAILABLE') }));
 	});
 
 	test('an unparseable PDF escalates CORRUPTED_FILE, not the generic OCR_NOT_AVAILABLE', async () => {
@@ -127,6 +214,10 @@ describe('digitalizacao agent', () => {
 		expect(result.extraction_method).toBeNull();
 		expect(result.needs_review).toBe(true);
 		expect(result.escalated_to_excecoes).toBe(true);
+		expect(runOcr).not.toHaveBeenCalled();
+		// Diagnosed as corrupted before OCR would even have been attempted —
+		// no cost incurred, so 'free', not 'cheap'.
+		expect(result.cost_tier_used).toBe('free');
 		expect(excecoes.process).toHaveBeenCalledWith(expect.objectContaining({ errorMsg: expect.stringContaining('CORRUPTED_FILE') }));
 	});
 

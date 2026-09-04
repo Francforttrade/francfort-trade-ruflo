@@ -1,4 +1,4 @@
-const { decideInitialTier, nextTier, TIER_ORDER } = require('./costTiering');
+const { decideInitialTier, nextTier, isOcrEligibleMimeType, TIER_ORDER } = require('./costTiering');
 
 describe('digitalizacao costTiering', () => {
 	describe('decideInitialTier', () => {
@@ -32,5 +32,20 @@ describe('digitalizacao costTiering', () => {
 
 	test('TIER_ORDER is cheapest-first', () => {
 		expect(TIER_ORDER).toEqual(['free', 'cheap', 'expensive']);
+	});
+
+	describe('isOcrEligibleMimeType', () => {
+		test('accepts PDF and raster image types', () => {
+			expect(isOcrEligibleMimeType('application/pdf')).toBe(true);
+			expect(isOcrEligibleMimeType('image/jpeg')).toBe(true);
+			expect(isOcrEligibleMimeType('image/png')).toBe(true);
+			expect(isOcrEligibleMimeType('image/webp')).toBe(true);
+			expect(isOcrEligibleMimeType('image/tiff')).toBe(true);
+		});
+
+		test('rejects legacy .doc and spreadsheet types — OCR cannot read those formats', () => {
+			expect(isOcrEligibleMimeType('application/msword')).toBe(false);
+			expect(isOcrEligibleMimeType('application/vnd.ms-excel')).toBe(false);
+		});
 	});
 });

@@ -54,6 +54,28 @@ describe('digitalizacao errorCodes', () => {
 			expect(code).toBe(ERROR_CODES.CORRUPTED_FILE);
 		});
 
+		test('a PaddleOCR call failure is OCR_FAILED, not OCR_NOT_AVAILABLE', () => {
+			const code = pickErrorCode({
+				hasFieldConflict: false,
+				hasEntityAmbiguous: false,
+				extractionMethod: null,
+				confidenceBand: 'review_required',
+				fileFailureReason: 'ocr_failed',
+			});
+			expect(code).toBe(ERROR_CODES.OCR_FAILED);
+		});
+
+		test('a low-confidence PaddleOCR result is OCR_LOW_CONFIDENCE, not OCR_NOT_AVAILABLE', () => {
+			const code = pickErrorCode({
+				hasFieldConflict: false,
+				hasEntityAmbiguous: false,
+				extractionMethod: null,
+				confidenceBand: 'review_required',
+				fileFailureReason: 'ocr_low_confidence',
+			});
+			expect(code).toBe(ERROR_CODES.OCR_LOW_CONFIDENCE);
+		});
+
 		test('a low confidence band with nothing else wrong is LOW_EXTRACTION_CONFIDENCE', () => {
 			const code = pickErrorCode({
 				hasFieldConflict: false,
