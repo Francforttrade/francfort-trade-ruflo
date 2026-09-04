@@ -10,6 +10,7 @@ const logistics = require('../agents/logistics');
 const comissoes = require('../agents/comissoes');
 const excecoes = require('../agents/excecoes');
 const monitor = require('../agents/monitor');
+const digitalizacao = require('../agents/digitalizacao');
 
 const AGENTS = {
 	comunicacao,
@@ -23,6 +24,7 @@ const AGENTS = {
 	comissoes,
 	excecoes,
 	monitor,
+	digitalizacao,
 };
 
 const FTR_STATUS = {

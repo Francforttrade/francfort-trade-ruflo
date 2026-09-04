@@ -11,6 +11,7 @@ const TABLES = {
 	BL_DOCUMENTS: 'bl_documents',
 	COMPLIANCE_EVENTS: 'compliance_events',
 	COMMISSIONS: 'commissions',
+	DOCUMENT_RELATIONSHIPS: 'document_relationships',
 };
 
 module.exports = { supabase, TABLES };

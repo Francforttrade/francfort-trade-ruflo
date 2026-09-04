@@ -21,6 +21,17 @@ const CONFIG = {
 	// they *would* do instead of doing it — task spec section 15's "modo de
 	// teste que não envie e-mails nem altere eventos reais".
 	TEST_MODE: process.env.PAYMENT_TRACKING_TEST_MODE === 'true',
+
+	DIGITALIZACAO: {
+		// 4-band confidence policy (docs/RDIA_PRD.md §13) applied to the
+		// overall confidence (min of classification + all extracted fields):
+		// >= AUTO_ACCEPT no review needed; >= ACCEPT_FLAGGED accepted but
+		// flagged; >= REVIEW_REQUIRED and below need human review; below that,
+		// candidate-only (never persisted as fact). See confidenceScoring.js.
+		CONFIDENCE_AUTO_ACCEPT: Number(process.env.DIGITALIZACAO_CONFIDENCE_AUTO_ACCEPT) || 0.95,
+		CONFIDENCE_ACCEPT_FLAGGED: Number(process.env.DIGITALIZACAO_CONFIDENCE_ACCEPT_FLAGGED) || 0.8,
+		CONFIDENCE_REVIEW_REQUIRED: Number(process.env.DIGITALIZACAO_CONFIDENCE_REVIEW_REQUIRED) || 0.6,
+	},
 };
 
 module.exports = CONFIG;
