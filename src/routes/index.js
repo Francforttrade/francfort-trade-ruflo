@@ -25,6 +25,15 @@ router.post('/classificar-doc', async (req, res, next) => {
 	}
 });
 
+router.post('/digitalizar-doc', async (req, res, next) => {
+	try {
+		const result = await master.route({ ...req.body, targetAgent: 'digitalizacao' });
+		res.json(result);
+	} catch (err) {
+		next(err);
+	}
+});
+
 router.get('/rastrear', async (req, res, next) => {
 	try {
 		const result = await master.route({ ...req.query, targetAgent: 'logistics' });

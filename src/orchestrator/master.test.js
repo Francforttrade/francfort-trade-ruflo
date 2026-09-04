@@ -10,6 +10,22 @@ describe('orchestrator master', () => {
 		expect(result.agent).toBe('contratos');
 	});
 
+	test('routes a valid FTR to digitalizacao (needs_review when there is nothing to extract)', async () => {
+		// digitalizacao escalates needs_review straight to EXCECOES (see
+		// digitalizacao/index.js's escalate()), which writes to Firestore —
+		// stub it out the same way the comunicacao/comercial tests below do,
+		// since this suite otherwise runs without any Firestore mocking.
+		const original = master.AGENTS.excecoes.process;
+		master.AGENTS.excecoes.process = jest.fn().mockResolvedValue({ agent: 'excecoes' });
+
+		const result = await master.route({ ftrCode: 'FTR-1', targetAgent: 'digitalizacao' });
+
+		master.AGENTS.excecoes.process = original;
+		expect(result.agent).toBe('digitalizacao');
+		expect(result.needs_review).toBe(true);
+		expect(result.escalated_to_excecoes).toBe(true);
+	});
+
 	test('sends invalid FTR to excecoes', async () => {
 		const result = await master.route({ targetAgent: 'contratos' });
 		expect(result.agent).toBe('excecoes');
