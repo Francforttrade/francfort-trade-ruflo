@@ -1,0 +1,50 @@
+### test10b-inflight-1789028111292 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:15:11Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:15:11Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:15:11Z  WorkflowTaskStarted       
+    4  2026-09-10T08:15:11Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:15:11Z  ActivityTaskScheduled     
+    6  2026-09-10T08:15:11Z  ActivityTaskStarted       
+    7  2026-09-10T08:15:11Z  ActivityTaskCompleted     
+    8  2026-09-10T08:15:11Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:15:11Z  WorkflowTaskStarted       
+   10  2026-09-10T08:15:11Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:15:22Z  WorkflowExecutionSignaled 
+   12  2026-09-10T08:15:22Z  WorkflowTaskScheduled     
+   13  2026-09-10T08:15:22Z  WorkflowTaskStarted       
+   14  2026-09-10T08:15:23Z  WorkflowTaskCompleted     
+   15  2026-09-10T08:15:23Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"aflatoxin_check":{"limit_ppb":2,"result_ppb":1,"within_limit":true},"agent":"compliance","alerts":null,"checklist":{"complete":true,"items":[{"document":"ACID","present":true}],"market":"Egypt"},"ftr_code":"ftr-poc-t10b","market":"Egypt"}
+  ResultEncoding  json/plain
+
+### test10b-fresh-1789028123145 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:15:23Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:15:23Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:15:23Z  WorkflowTaskStarted       
+    4  2026-09-10T08:15:23Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:15:23Z  MarkerRecorded            
+    6  2026-09-10T08:15:23Z  UpsertWorkflowSearchAttributes
+    7  2026-09-10T08:15:23Z  ActivityTaskScheduled     
+    8  2026-09-10T08:15:23Z  ActivityTaskStarted       
+    9  2026-09-10T08:15:23Z  ActivityTaskCompleted     
+   10  2026-09-10T08:15:23Z  WorkflowTaskScheduled     
+   11  2026-09-10T08:15:23Z  WorkflowTaskStarted       
+   12  2026-09-10T08:15:23Z  WorkflowTaskCompleted     
+   13  2026-09-10T08:15:24Z  WorkflowExecutionSignaled 
+   14  2026-09-10T08:15:24Z  WorkflowTaskScheduled     
+   15  2026-09-10T08:15:24Z  WorkflowTaskStarted       
+   16  2026-09-10T08:15:24Z  WorkflowTaskCompleted     
+   17  2026-09-10T08:15:24Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"aflatoxin_check":{"limit_ppb":2,"result_ppb":1,"within_limit":true},"agent":"compliance","alerts":null,"checklist":{"complete":true,"items":[{"document":"ACID","present":true}],"market":"Egypt"},"ftr_code":"ftr-poc-t10b","market":"Egypt","pocVersion":"v2-patched-branch"}
+  ResultEncoding  json/plain
+

@@ -1,0 +1,45 @@
+{
+  "testId": "TEST-01-PERSISTENT-WORKFLOW-IDENTITY",
+  "workflowId": "ftr-poc-0001",
+  "syntheticInput": {
+    "ftrCode": "ftr-poc-0001",
+    "market": "Egypt",
+    "labResultPpb": 1,
+    "presentDocuments": {
+      "ACID": true
+    },
+    "expiryDates": {}
+  },
+  "startedRunId": "01a08a67-2cf6-710b-82cf-63e694e3e6f2",
+  "startResult": {
+    "agent": "compliance",
+    "ftr_code": "ftr-poc-0001",
+    "market": "Egypt",
+    "aflatoxin_check": {
+      "limit_ppb": 2,
+      "result_ppb": 1,
+      "within_limit": true
+    },
+    "checklist": {
+      "market": "Egypt",
+      "items": [
+        {
+          "document": "ACID",
+          "present": true
+        }
+      ],
+      "complete": true
+    },
+    "alerts": []
+  },
+  "lookup": {
+    "resolvedWorkflowId": "ftr-poc-0001",
+    "resolvedRunId": "01a08a67-2cf6-710b-82cf-63e694e3e6f2",
+    "resolvedStatus": "COMPLETED"
+  },
+  "workflowIdMatches": true,
+  "runIdMatches": true,
+  "handleResolved": true,
+  "passCriteria": "Returned workflowId/runId match the originally started execution; exactly one execution exists for that ID.",
+  "verdict": "PASS"
+}

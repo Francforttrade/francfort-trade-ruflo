@@ -1,0 +1,108 @@
+{
+  "testId": "TEST-05-RETRY",
+  "workflowId": "test05-retry-1789027245423",
+  "runId": "01a08a55-5d7d-7c2a-a876-9e2c386804e6",
+  "failUntilAttempt": 3,
+  "result": {
+    "succeededOnAttempt": 3,
+    "payload": {
+      "synthetic": true,
+      "testId": "TEST-05"
+    }
+  },
+  "engineAttempt": 3,
+  "engineLastFailureMessage": "injectableFailureActivity: synthetic failure injected on attempt 2 (configured to fail until attempt 3)",
+  "activityCompletedCount": 1,
+  "historySummary": [
+    {
+      "eventId": "1",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "eventTime": {
+        "seconds": "1789027245",
+        "nanos": 437797200
+      }
+    },
+    {
+      "eventId": "2",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027245",
+        "nanos": 437797200
+      }
+    },
+    {
+      "eventId": "3",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027245",
+        "nanos": 443031100
+      }
+    },
+    {
+      "eventId": "4",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027245",
+        "nanos": 457569400
+      }
+    },
+    {
+      "eventId": "5",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027245",
+        "nanos": 457569400
+      }
+    },
+    {
+      "eventId": "6",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027248",
+        "nanos": 477017700
+      }
+    },
+    {
+      "eventId": "7",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027248",
+        "nanos": 481630700
+      }
+    },
+    {
+      "eventId": "8",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027248",
+        "nanos": 481630700
+      }
+    },
+    {
+      "eventId": "9",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027248",
+        "nanos": 483597300
+      }
+    },
+    {
+      "eventId": "10",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027248",
+        "nanos": 490154800
+      }
+    },
+    {
+      "eventId": "11",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027248",
+        "nanos": 490154800
+      }
+    }
+  ],
+  "passCriteria": "Event history shows the engine's own attempt counter reached the expected value, carrying the prior attempt's failure, with eventual success and no external/manual retry trigger.",
+  "verdict": "PASS"
+}

@@ -1,0 +1,156 @@
+{
+  "testId": "TEST-04-FAILURE-RECOVERY",
+  "workflowId": "test04-failure-recovery-1789027126350",
+  "runId": "01a08a53-8c59-7a21-bc4f-c19091290b74",
+  "oldWorkerPid": 20260,
+  "killedAt": "2026-09-10T07:58:47.907Z",
+  "newWorkerPid": 19524,
+  "newWorkerReady": true,
+  "activityScheduledBeforeKill": false,
+  "activityScheduledEventCount": 1,
+  "activityCompletedEventCount": 1,
+  "result": {
+    "agent": "compliance",
+    "ftr_code": "ftr-poc-t04",
+    "market": "Egypt",
+    "aflatoxin_check": {
+      "limit_ppb": 2,
+      "result_ppb": 1,
+      "within_limit": true
+    },
+    "checklist": {
+      "market": "Egypt",
+      "items": [
+        {
+          "document": "ACID",
+          "present": true
+        }
+      ],
+      "complete": true
+    },
+    "alerts": []
+  },
+  "postHistorySummary": [
+    {
+      "eventId": "1",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "eventTime": {
+        "seconds": "1789027126",
+        "nanos": 361664000
+      }
+    },
+    {
+      "eventId": "2",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027126",
+        "nanos": 362199400
+      }
+    },
+    {
+      "eventId": "3",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027126",
+        "nanos": 365838600
+      }
+    },
+    {
+      "eventId": "4",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027126",
+        "nanos": 375813200
+      }
+    },
+    {
+      "eventId": "5",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 441533500
+      }
+    },
+    {
+      "eventId": "6",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 441533500
+      }
+    },
+    {
+      "eventId": "7",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 445778800
+      }
+    },
+    {
+      "eventId": "8",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 564528800
+      }
+    },
+    {
+      "eventId": "9",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 565108500
+      }
+    },
+    {
+      "eventId": "10",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 569741100
+      }
+    },
+    {
+      "eventId": "11",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 587710300
+      }
+    },
+    {
+      "eventId": "12",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 587710300
+      }
+    },
+    {
+      "eventId": "13",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 590096400
+      }
+    },
+    {
+      "eventId": "14",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 604421800
+      }
+    },
+    {
+      "eventId": "15",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027135",
+        "nanos": 604421800
+      }
+    }
+  ],
+  "verdict": "PASS"
+}

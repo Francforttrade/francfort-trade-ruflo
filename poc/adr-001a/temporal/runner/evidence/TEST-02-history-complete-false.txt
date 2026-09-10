@@ -1,0 +1,18 @@
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T07:56:37Z  WorkflowExecutionStarted  
+    2  2026-09-10T07:56:37Z  WorkflowTaskScheduled     
+    3  2026-09-10T07:56:37Z  WorkflowTaskStarted       
+    4  2026-09-10T07:56:37Z  WorkflowTaskCompleted     
+    5  2026-09-10T07:56:37Z  ActivityTaskScheduled     
+    6  2026-09-10T07:56:37Z  ActivityTaskStarted       
+    7  2026-09-10T07:56:37Z  ActivityTaskCompleted     
+    8  2026-09-10T07:56:37Z  WorkflowTaskScheduled     
+    9  2026-09-10T07:56:37Z  WorkflowTaskStarted       
+   10  2026-09-10T07:56:37Z  WorkflowTaskCompleted     
+   11  2026-09-10T07:56:37Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"branch":"PATH_B","result":{"aflatoxin_check":{"limit_ppb":2,"result_ppb":1,"within_limit":true},"agent":"compliance","alerts":null,"checklist":{"complete":false,"items":[{"document":"ACID","present":false}],"market":"Egypt"},"ftr_code":"ftr-poc-t02-incomplete","market":"Egypt"}}
+  ResultEncoding  json/plain

@@ -1,0 +1,35 @@
+{
+  "testId": "TEST-06-HITL",
+  "runs": [
+    {
+      "label": "approved",
+      "workflowId": "test06-approved-1789027280810",
+      "runId": "01a08a55-e7b6-72cd-9f4c-d20a8eded049",
+      "decisionSent": "APPROVED",
+      "result": {
+        "decision": "APPROVED",
+        "recordedAt": "2026-09-10T08:01:22.388Z"
+      },
+      "activityScheduledBeforeSignal": false,
+      "activityScheduledAfterSignal": true,
+      "decisionMatches": true,
+      "waitHeld": true
+    },
+    {
+      "label": "rejected",
+      "workflowId": "test06-rejected-1789027282433",
+      "runId": "01a08a55-ee03-7ad6-a7eb-f66053a18434",
+      "decisionSent": "REJECTED",
+      "result": {
+        "decision": "REJECTED",
+        "recordedAt": "2026-09-10T08:01:23.967Z"
+      },
+      "activityScheduledBeforeSignal": false,
+      "activityScheduledAfterSignal": true,
+      "decisionMatches": true,
+      "waitHeld": true
+    }
+  ],
+  "passCriteria": "Both APPROVED and REJECTED runs show the wait point held until signaled, and the correct downstream branch in each case.",
+  "verdict": "PASS"
+}

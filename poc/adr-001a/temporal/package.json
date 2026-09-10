@@ -1,0 +1,15 @@
+{
+  "name": "adr-001a-temporal-poc",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated ADR-001A PoC scaffold for the Temporal candidate. Not part of the Francfort Trade production application; not built, deployed, or referenced by the root package.json.",
+  "engines": {
+    "node": ">=20.3.0"
+  },
+  "dependencies": {
+    "@temporalio/activity": "^1.23.0",
+    "@temporalio/client": "^1.23.0",
+    "@temporalio/worker": "^1.23.0",
+    "@temporalio/workflow": "^1.23.0"
+  }
+}

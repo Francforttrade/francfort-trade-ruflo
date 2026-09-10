@@ -1,0 +1,46 @@
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:01:20Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:01:20Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:01:20Z  WorkflowTaskStarted       
+    4  2026-09-10T08:01:20Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:01:22Z  WorkflowExecutionSignaled 
+    6  2026-09-10T08:01:22Z  WorkflowTaskScheduled     
+    7  2026-09-10T08:01:22Z  WorkflowTaskStarted       
+    8  2026-09-10T08:01:22Z  WorkflowTaskCompleted     
+    9  2026-09-10T08:01:22Z  ActivityTaskScheduled     
+   10  2026-09-10T08:01:22Z  ActivityTaskStarted       
+   11  2026-09-10T08:01:22Z  ActivityTaskCompleted     
+   12  2026-09-10T08:01:22Z  WorkflowTaskScheduled     
+   13  2026-09-10T08:01:22Z  WorkflowTaskStarted       
+   14  2026-09-10T08:01:22Z  WorkflowTaskCompleted     
+   15  2026-09-10T08:01:22Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"decision":"APPROVED","recordedAt":"2026-09-10T08:01:22.388Z"}
+  ResultEncoding  json/plain
+=====
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:01:22Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:01:22Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:01:22Z  WorkflowTaskStarted       
+    4  2026-09-10T08:01:22Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:01:23Z  WorkflowExecutionSignaled 
+    6  2026-09-10T08:01:23Z  WorkflowTaskScheduled     
+    7  2026-09-10T08:01:23Z  WorkflowTaskStarted       
+    8  2026-09-10T08:01:23Z  WorkflowTaskCompleted     
+    9  2026-09-10T08:01:23Z  ActivityTaskScheduled     
+   10  2026-09-10T08:01:23Z  ActivityTaskStarted       
+   11  2026-09-10T08:01:23Z  ActivityTaskCompleted     
+   12  2026-09-10T08:01:23Z  WorkflowTaskScheduled     
+   13  2026-09-10T08:01:23Z  WorkflowTaskStarted       
+   14  2026-09-10T08:01:23Z  WorkflowTaskCompleted     
+   15  2026-09-10T08:01:23Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"decision":"REJECTED","recordedAt":"2026-09-10T08:01:23.967Z"}
+  ResultEncoding  json/plain
+=====

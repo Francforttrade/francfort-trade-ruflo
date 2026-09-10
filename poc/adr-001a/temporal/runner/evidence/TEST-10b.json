@@ -1,0 +1,66 @@
+{
+  "testId": "TEST-10-VERSION-EVOLUTION (corrected scenario addendum)",
+  "v1WorkerPid": 9428,
+  "v2WorkerPid": 19164,
+  "v2Ready": true,
+  "inFlight": {
+    "workflowId": "test10b-inflight-1789028111292",
+    "runId": "01a08a62-93c9-76e9-9f3d-a18c7f521a92",
+    "activityRecordedBeforeSwap": true,
+    "activityCompletedBeforeSwap": true,
+    "activityScheduledCountTotal": 1,
+    "result": {
+      "agent": "compliance",
+      "ftr_code": "ftr-poc-t10b",
+      "market": "Egypt",
+      "aflatoxin_check": {
+        "limit_ppb": 2,
+        "result_ppb": 1,
+        "within_limit": true
+      },
+      "checklist": {
+        "market": "Egypt",
+        "items": [
+          {
+            "document": "ACID",
+            "present": true
+          }
+        ],
+        "complete": true
+      },
+      "alerts": []
+    },
+    "tookNewBranch": false,
+    "markerRecordedEvents": 0
+  },
+  "fresh": {
+    "workflowId": "test10b-fresh-1789028123145",
+    "runId": "01a08a62-c20b-7df7-a172-f7527b59a76c",
+    "result": {
+      "agent": "compliance",
+      "ftr_code": "ftr-poc-t10b",
+      "market": "Egypt",
+      "aflatoxin_check": {
+        "limit_ppb": 2,
+        "result_ppb": 1,
+        "within_limit": true
+      },
+      "checklist": {
+        "market": "Egypt",
+        "items": [
+          {
+            "document": "ACID",
+            "present": true
+          }
+        ],
+        "complete": true
+      },
+      "alerts": [],
+      "pocVersion": "v2-patched-branch"
+    },
+    "tookNewBranch": true,
+    "markerRecordedEvents": 1
+  },
+  "passCriteria": "In-flight instance (Activity call already recorded pre-swap) replays under OLD behavior with no duplicate Activity execution; freshly started instance (no prior history) takes NEW behavior. No non-determinism error on either.",
+  "verdict": "PASS"
+}
