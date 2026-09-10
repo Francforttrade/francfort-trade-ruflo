@@ -1,0 +1,18 @@
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:00:45Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:00:45Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:00:45Z  WorkflowTaskStarted       
+    4  2026-09-10T08:00:45Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:00:45Z  ActivityTaskScheduled     
+    6  2026-09-10T08:00:48Z  ActivityTaskStarted       
+    7  2026-09-10T08:00:48Z  ActivityTaskCompleted     
+    8  2026-09-10T08:00:48Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:00:48Z  WorkflowTaskStarted       
+   10  2026-09-10T08:00:48Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:00:48Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"payload":{"synthetic":true,"testId":"TEST-05"},"succeededOnAttempt":3}
+  ResultEncoding  json/plain

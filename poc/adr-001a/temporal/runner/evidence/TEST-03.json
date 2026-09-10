@@ -1,0 +1,189 @@
+{
+  "testId": "TEST-03-WAIT-RESUME",
+  "workflowId": "test03-wait-resume-1789027054036",
+  "runId": "01a08a52-71e1-7adf-8726-d0c1599587cb",
+  "preSignalStatus": "RUNNING",
+  "preSignalEventCount": 4,
+  "activityScheduledBeforeSignal": false,
+  "activityScheduledAfterSignal": true,
+  "postSignalEventCount": 15,
+  "result": {
+    "agent": "compliance",
+    "ftr_code": "ftr-poc-t03",
+    "market": "Egypt",
+    "aflatoxin_check": {
+      "limit_ppb": 2,
+      "result_ppb": 1,
+      "within_limit": true
+    },
+    "checklist": {
+      "market": "Egypt",
+      "items": [
+        {
+          "document": "ACID",
+          "present": true
+        }
+      ],
+      "complete": true
+    },
+    "alerts": []
+  },
+  "preSignalHistorySummary": [
+    {
+      "eventId": "1",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 49712500
+      }
+    },
+    {
+      "eventId": "2",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 49712500
+      }
+    },
+    {
+      "eventId": "3",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 53265500
+      }
+    },
+    {
+      "eventId": "4",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 64514700
+      }
+    }
+  ],
+  "postSignalHistorySummary": [
+    {
+      "eventId": "1",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 49712500
+      }
+    },
+    {
+      "eventId": "2",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 49712500
+      }
+    },
+    {
+      "eventId": "3",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 53265500
+      }
+    },
+    {
+      "eventId": "4",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027054",
+        "nanos": 64514700
+      }
+    },
+    {
+      "eventId": "5",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 616573900
+      }
+    },
+    {
+      "eventId": "6",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 616573900
+      }
+    },
+    {
+      "eventId": "7",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 620577000
+      }
+    },
+    {
+      "eventId": "8",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 634017000
+      }
+    },
+    {
+      "eventId": "9",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 634017000
+      }
+    },
+    {
+      "eventId": "10",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 636323400
+      }
+    },
+    {
+      "eventId": "11",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 641394200
+      }
+    },
+    {
+      "eventId": "12",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 641394200
+      }
+    },
+    {
+      "eventId": "13",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 643167500
+      }
+    },
+    {
+      "eventId": "14",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 651423200
+      }
+    },
+    {
+      "eventId": "15",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "eventTime": {
+        "seconds": "1789027055",
+        "nanos": 651423200
+      }
+    }
+  ],
+  "passCriteria": "Event history shows a wait/marker event before the signal and Activity scheduling only after it.",
+  "verdict": "PASS"
+}

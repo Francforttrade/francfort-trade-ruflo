@@ -1,0 +1,145 @@
+{
+  "testId": "TEST-08-FINANCIAL-GATE",
+  "evidenceRuns": [
+    {
+      "label": "a-payment-unknown",
+      "workflowId": "test08-a-payment-unknown-1789027499343",
+      "syntheticEvidence": {},
+      "result": {
+        "finalState": "PAYMENT_UNKNOWN",
+        "path": [
+          "PAYMENT_UNKNOWN"
+        ],
+        "releaseEligible": false
+      }
+    },
+    {
+      "label": "b-signal-detected",
+      "workflowId": "test08-b-signal-detected-1789027499415",
+      "syntheticEvidence": {
+        "signalDetected": true
+      },
+      "result": {
+        "finalState": "PAYMENT_SIGNAL_DETECTED",
+        "path": [
+          "PAYMENT_UNKNOWN",
+          "PAYMENT_SIGNAL_DETECTED"
+        ],
+        "releaseEligible": false
+      }
+    },
+    {
+      "label": "c-evidence-received",
+      "workflowId": "test08-c-evidence-received-1789027499465",
+      "syntheticEvidence": {
+        "signalDetected": true,
+        "evidenceReceived": true
+      },
+      "result": {
+        "finalState": "PAYMENT_EVIDENCE_RECEIVED",
+        "path": [
+          "PAYMENT_UNKNOWN",
+          "PAYMENT_SIGNAL_DETECTED",
+          "PAYMENT_EVIDENCE_RECEIVED"
+        ],
+        "releaseEligible": false
+      }
+    },
+    {
+      "label": "d-validated",
+      "workflowId": "test08-d-validated-1789027499511",
+      "syntheticEvidence": {
+        "signalDetected": true,
+        "evidenceReceived": true,
+        "validated": true
+      },
+      "result": {
+        "finalState": "PAYMENT_VALIDATED",
+        "path": [
+          "PAYMENT_UNKNOWN",
+          "PAYMENT_SIGNAL_DETECTED",
+          "PAYMENT_EVIDENCE_RECEIVED",
+          "PAYMENT_VALIDATED"
+        ],
+        "releaseEligible": false
+      }
+    },
+    {
+      "label": "e-release-eligible",
+      "workflowId": "test08-e-release-eligible-1789027499553",
+      "syntheticEvidence": {
+        "signalDetected": true,
+        "evidenceReceived": true,
+        "validated": true,
+        "bankConfirmed": true
+      },
+      "result": {
+        "finalState": "RELEASE_ELIGIBLE",
+        "path": [
+          "PAYMENT_UNKNOWN",
+          "PAYMENT_SIGNAL_DETECTED",
+          "PAYMENT_EVIDENCE_RECEIVED",
+          "PAYMENT_VALIDATED",
+          "BANK_CREDIT_CONFIRMED",
+          "RELEASE_ELIGIBLE"
+        ],
+        "releaseEligible": true
+      }
+    }
+  ],
+  "allExpectedStatesMatch": true,
+  "points": {
+    "point1_neverReleaseFromUnknown": true,
+    "point2_neverReleaseFromPartial": true,
+    "point3_bankConfirmedAlwaysReachedBeforeRelease": true,
+    "point4_directJumpStructurallyImpossible": {
+      "isTransitionAllowedCheck": true,
+      "noTargetStateParam": true
+    },
+    "point5_everyTransitionVisibleInHistory": true,
+    "point6_retryReproducesIdenticalState": {
+      "workflowId": "test08-retry-1789027499697",
+      "engineAttempt": 3,
+      "result": {
+        "attempt": 3,
+        "gateResult": {
+          "finalState": "RELEASE_ELIGIBLE",
+          "path": [
+            "PAYMENT_UNKNOWN",
+            "PAYMENT_SIGNAL_DETECTED",
+            "PAYMENT_EVIDENCE_RECEIVED",
+            "PAYMENT_VALIDATED",
+            "BANK_CREDIT_CONFIRMED",
+            "RELEASE_ELIGIBLE"
+          ],
+          "releaseEligible": true
+        }
+      },
+      "pass": true
+    },
+    "point7_duplicateSignalDoesNotAdvanceTwice": {
+      "workflowId": "test08-signal-1789027502760",
+      "signalCount": 2,
+      "activityScheduledCount": 1,
+      "result": {
+        "gateResult": {
+          "finalState": "RELEASE_ELIGIBLE",
+          "path": [
+            "PAYMENT_UNKNOWN",
+            "PAYMENT_SIGNAL_DETECTED",
+            "PAYMENT_EVIDENCE_RECEIVED",
+            "PAYMENT_VALIDATED",
+            "BANK_CREDIT_CONFIRMED",
+            "RELEASE_ELIGIBLE"
+          ],
+          "releaseEligible": true
+        },
+        "signalCount": 2
+      },
+      "pass": true
+    },
+    "point8_noLlmCall": true,
+    "point9_noExternalIo": true
+  },
+  "verdict": "PASS"
+}

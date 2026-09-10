@@ -1,0 +1,24 @@
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:06:04Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:06:04Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:06:04Z  WorkflowTaskStarted       
+    4  2026-09-10T08:06:04Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:06:04Z  ActivityTaskScheduled     
+    6  2026-09-10T08:06:04Z  ActivityTaskStarted       
+    7  2026-09-10T08:06:04Z  ActivityTaskCompleted     
+    8  2026-09-10T08:06:04Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:06:04Z  WorkflowTaskStarted       
+   10  2026-09-10T08:06:04Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:06:04Z  ActivityTaskScheduled     
+   12  2026-09-10T08:06:04Z  ActivityTaskStarted       
+   13  2026-09-10T08:06:04Z  ActivityTaskCompleted     
+   14  2026-09-10T08:06:04Z  WorkflowTaskScheduled     
+   15  2026-09-10T08:06:04Z  WorkflowTaskStarted       
+   16  2026-09-10T08:06:04Z  WorkflowTaskCompleted     
+   17  2026-09-10T08:06:04Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"aflatoxin_check":{"limit_ppb":2,"result_ppb":1,"within_limit":true},"agent":"compliance","alerts":null,"checklist":{"complete":true,"items":[{"document":"ACID","present":true}],"market":"Egypt"},"ftr_code":"ftr-poc-t09","market":"Egypt"}
+  ResultEncoding  json/plain
