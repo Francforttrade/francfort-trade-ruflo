@@ -123,7 +123,7 @@
 #### COMUNICACAO Agent
 - [ ] Endpoint `/webhook-whatsapp` (Cloud Run)
   - [ ] Parse incoming WhatsApp message (nome, email, FTR code)
-  - [x] Fallback: Gmail trigger (Apps Script 15min) — `apps-script/gmail-intake/`
+  - [x] Fallback: Gmail trigger (Apps Script 15min) — `apps-script/gmail-sync/`
   - [ ] Estruturar JSON: `{from, subject, body, extracted_ftr_code, intent}`
   
 - [ ] Gmail classifier

@@ -53,17 +53,10 @@ GCP_PROJECT_ID=<PROJECT_ID> bash scripts/deploy-cloud-run.sh
 
 ## 6. Gmail intake (Apps Script)
 
-Fallback de intake por Gmail, ver `apps-script/gmail-intake/README.md` para
-o passo a passo completo de deploy (`clasp`) e configuração. Requer conceder
-à conta que autoriza o script o papel `roles/secretmanager.secretAccessor`
-no secret `francfort-whatsapp-webhook-secret` criado no passo 2:
-
-```bash
-gcloud secrets add-iam-policy-binding francfort-whatsapp-webhook-secret \
-	--member="user:<email-da-conta-do-apps-script>" \
-	--role="roles/secretmanager.secretAccessor" \
-	--project=<PROJECT_ID>
-```
+Fallback de intake por Gmail, ver `apps-script/gmail-sync/README.md` para o
+passo a passo completo: vincular o script a uma planilha em
+`export@francfort.co`, configurar `WEBHOOK_URL`/`WEBHOOK_SHARED_SECRET` pelo
+menu da planilha e instalar o gatilho de 15 minutos.
 
 ## Notas
 
