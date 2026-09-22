@@ -320,6 +320,50 @@ No task-suggested target progression was specified for COMUNICACAO beyond the ou
 
 ---
 
+## Reconciliation: channel role and proposed flow
+
+**Status:** documentary correction and technical proposal. RUNTIME_CODE establishes current behavior; BUSINESS_DECISION establishes approved intent, not implementation. `FINANCEIRO_DECISIONS.md`'s FIN-DEC-01 through FIN-DEC-21 authorize a financial confirmation, partial-payment and delivery-authorization flow for FINANCEIRO; they assign no new authority to COMUNICACAO, do not change this component's output contract, and do not approve any WhatsApp-group intake/parsing as implemented behavior.
+
+### Authority and scope
+
+FIN-DEC-04/05 approve a **dedicated per-operation WhatsApp group** ("grupo de WhatsApp da operação com o agente") as the confirmation channel — this is a different message source from the existing `POST /webhook-whatsapp` intake this component actually implements, which parses arbitrary inbound messages against a fixed `booking/invoice/bl_document/quote_offer/ftr_reference/unknown` intent set (Business Rules #1). None of those six intents represents "bank credit confirmation," "partial-payment authorization," "document selection," or "physical-delivery confirmation" (FIN-DEC-01/02/12/13/15/16/18/19/20/21) — `parser.js` has no code path that would classify a message into any of these. Whether the approved per-operation group is meant to be additional traffic through this same webhook/parser, or an entirely separate integration, is not established by any FIN-DEC record or by this component's code.
+
+**Necessary but not sufficient (same correction as FINANCEIRO.md/QUALIDADE.md):** even where this component's existing pattern could be extended — regex/keyword classification returning `null` on non-match — a keyword match (e.g. a message containing "confirmado") is not, by itself, the affirmative, version-bound confirmation FIN-DEC-01/02/13 require. `parser.js`'s functions are deliberately non-committal (Business Rules #4, "never invent missing information") but they are also not built to distinguish an affirmative reply from a negative or ambiguous one — that distinction does not exist anywhere in this component today, for any intent.
+
+### Statelessness and order independence
+
+Every `process()` call handles one message in isolation; nothing in this component correlates a reply back to a specific outstanding request, waits for a second, independent signal, or tracks whether a confirmation or a document selection is still pending. The corrected design in `FINANCEIRO.md`'s "Approved Confirmation & Release Flow" requires exactly that — receiving confirmation and selection in either order and dispatching only once both are present — and that coordination cannot live in this component as currently built: `session_id` keys one *message's* persisted record, not one *pending request's* aggregate state. This is not a defect in the existing contract (COMUNICACAO was never designed to hold multi-message state); it is a scope boundary this reconciliation makes explicit rather than blurring.
+
+### Sending is out of scope today
+
+FIN-DEC-08/09/10/17 approve a single authorization dispatched via two channels (email and WhatsApp) with a shared identifier and per-channel/recipient delivery tracking. This component has no outbound send path at all: `response_template` is described in its own Authority Boundary as "a suggested acknowledgment, not sent by this component itself" — the same gap (computed text, no dispatch) would apply to any notification COMUNICACAO might eventually be asked to carry. No FIN-DEC record assigns COMUNICACAO the sending role, and this document does not assume it either.
+
+### Proposed technical division (PROPOSAL — not approved, not implemented)
+
+Consistent with the same proposal already recorded in `FINANCEIRO.md`, `COMPLIANCE.md` and `QUALIDADE.md`: COMUNICACAO would handle channel transport, sender-identity capture, reply-to-message binding and message normalization for the approved WhatsApp group, **without** itself deciding whether a classified message satisfies the financial gate; FINANCEIRO would interpret the resulting structured event in business terms and compute `release_flag`; the durable orchestrator would coordinate the wait for both independent signals (confirmation, selection) and sequence the authorization dispatch. This is a technical proposal, not an implemented workflow or a change in any component's existing authority — COMUNICACAO's `MAY_NOT_DECIDE` boundary (which FTR a message belongs to when ambiguous) would extend, under this proposal, to also not deciding whether a classified reply satisfies FINANCEIRO's gate.
+
+### Open business decisions
+
+- Whether the per-operation WhatsApp group (FIN-DEC-04/05/18) is served by this component at all, by a new dedicated integration, or by an extension of the existing `/webhook-whatsapp` route — not decided.
+- Retention policy for confirmation/selection/delivery messages and their metadata (FIN-DEC-14/20 leave this "a definir").
+- Whether COMUNICACAO is ever asked to carry outbound notifications (authorization, delivery confirmation acknowledgment) — not requested by any FIN-DEC record.
+
+### Technical work pending
+
+An intent/classification path (or a separate module) for confirmation/negative/ambiguous, partial-payment wording, document selection, and physical-delivery confirmation; a correlation mechanism binding a reply to a specific pending request/version, independent of `session_id`'s per-message scope; identity binding beyond WhatsApp display name (same gap recorded in `FINANCEIRO.md`); resolving whether the existing Firestore-overwrite idempotency gap (Implementation Gap #1 above) is acceptable for confirmation-carrying messages, where a silent overwrite would be materially worse than for a generic intake message.
+
+### Proposed acceptance criteria — not executed
+
+1. A message that merely contains a confirmation-shaped keyword, without being bound to the correct pending request/version, must not be classified as a valid confirmation.
+2. A negative, doubtful, or textually ambiguous reply must be classified distinctly from an affirmative one — not collapsed into a generic "unknown" intent that a downstream consumer might misinterpret as silence.
+3. Confirmation-shaped and selection-shaped messages for the same operation, received in either order, must both be preserved and correlated to the same pending request — neither is discarded because it arrived "out of sequence."
+4. A duplicate delivery of the same confirmation/selection/delivery message (same `threadId` or equivalent) must not silently overwrite a distinct, later message for the same operation the way today's unconditional `.set()` does (Idempotency, above).
+5. If this component is ever wired to send notifications, channel failure must be tracked per channel/recipient and must not be conflated with the underlying business decision succeeding or failing.
+
+Evidence: `src/agents/comunicacao/index.js`, `parser.js` and `ftrNormalization.js` were reread for this revision. No runtime, test, or webhook configuration was changed or executed.
+
+---
+
 ## Evidence Index
 
 | Claim | File | Symbol/Lines | Type |
@@ -336,3 +380,4 @@ No task-suggested target progression was specified for COMUNICACAO beyond the ou
 | Webhook secret control (4 sources) | `src/middleware/webhookAuth.js`, `docs/ARQUITETURA.md`, `docs/DEPLOY.md:70-78`, `apps-script/gmail-sync/README.md` | 1-28 (webhookAuth.js) | RUNTIME_CODE + ARCHITECTURE_DOCUMENTATION ×2 + COMPONENT_DOCUMENTATION |
 | `confidenceScoring.js` unwired | `src/agents/comunicacao/index.js` | 1-6 (import list, absence of confidenceScoring) | RUNTIME_CODE |
 | Cross-agent reuse of parser.js | `src/agents/contratos/parser.js` | 1 | RUNTIME_CODE |
+| Approved financial confirmation/delivery flow, FIN-DEC-01 through FIN-DEC-21 (no channel-handling authority assigned to COMUNICACAO) | `docs/contracts/FINANCEIRO_DECISIONS.md` | full document, dated 2026-09-21 | BUSINESS_DECISION |

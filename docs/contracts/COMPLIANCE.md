@@ -145,7 +145,7 @@ UNKNOWN:         everything else
 
 ## Idempotency
 
-Trivially idempotent for the happy path — every function is pure, no persistence read/write. Not idempotent in the sense of "prevents duplicate processing" because there is nothing to deduplicate against (no persisted state).
+No persistence writes are performed by this component. Recalculation is allowed; expiry alerts depend on the evaluation time and may change. There is no deduplication store. Future downstream notifications or state transitions must avoid duplicate effects; this does not require prohibiting repeated calculations.
 
 ---
 
@@ -170,7 +170,7 @@ Not documented, not implemented — same as every other P0 component except COMU
 ## Workflow Boundary
 
 - **Valid predecessor/event:** per `docs/ROADMAP.md`'s phase diagram: FTR approved, market known. Not code-enforced.
-- **Successful exit:** `checklist.complete === true` and `aflatoxin_check.within_limit !== false`.
+- **Current return, not an approval gate:** process() returns computed fields for recognized markets, including within_limit:null when evidence is missing. A successful function return is not regulatory approval. The earlier expression within_limit !== false also accepts null and must not be used as a production approval criterion.
 - **Failure exit:** unrecognized market → uncaught exception (see Error Model) — this is the component's only true "failure exit," and it is a crash, not a structured result.
 - **Wait/review state:** `checklist.complete === false` or `aflatoxin_check.within_limit === false` — advisory only, no gate enforced by this component itself (`docs/ROADMAP.md:13` names it a "BLOCKER: ACID/permit must exist before BL" but no code enforces that block — `documentacao`'s BL generator does not consult `compliance`'s output).
 - **Downstream capability:** `docs/ROADMAP.md`'s phase diagram names DOCUMENTACAO as next — **no verified code wiring** exists.
@@ -184,7 +184,8 @@ invoke('compliance', 'evaluate', context)
   → success:            { checklist: {complete: boolean, items: [...]},
                            aflatoxin_check: {within_limit: boolean|null} }
   → deterministic_gate:  checklist.complete AND aflatoxin_check.within_limit
-                          !== false — but note this is NOT enforced as a gate
+                          !== false - LEGACY PROPOSAL, NOT SAFE FOR APPROVAL:
+                          it admits null. This is NOT enforced as a gate
                           anywhere in current code; a workflow engine choosing
                           to gate on it would be introducing new authority,
                           not reusing an existing one
@@ -202,7 +203,7 @@ invoke('compliance', 'evaluate', context)
 
 ## Current Implementation Mapping
 
-No task-suggested state progression was specified for COMPLIANCE (unlike FINANCEIRO) — this section records the actual implemented decision shape only, per Business Rules above. No `NORMATIVE_TARGET` labeling is needed here since no external target was proposed to reconcile against.
+Current behavior remains the computed fields described above. The reconciliation section below introduces explicitly proposed target semantics; these are not implemented states or new approved market rules.
 
 ## Implementation Gaps
 
@@ -218,6 +219,45 @@ No task-suggested state progression was specified for COMPLIANCE (unlike FINANCE
 - Should COMPLIANCE call EXCECOES directly (as DIGITALIZACAO does) for `checklist.complete:false`/aflatoxin-fail cases?
 
 ---
+
+## Reconciliation: evidence, decisions and proposed flow
+
+**Status:** documentary correction and technical proposal. RUNTIME_CODE establishes current behavior; BUSINESS_DECISION establishes approved intent, not implementation. FIN-DEC-01 through FIN-DEC-21 apply to financial confirmation and delivery authorization; they do not assign regulatory approval to Rodrigo/Leonardo, establish a COMPLIANCE WhatsApp channel or waive regulatory evidence.
+
+### Authority and evidence
+
+COMPLIANCE owns the shared rule evaluation within the software; this does not establish the legal validity or current applicability of its constants. Market thresholds listed above describe code only, not independently verified current regulations. QUALIDADE supplies interpreted laboratory evidence. Buyer approval, payment confirmation and delivery messages do not replace regulatory evaluation. A present-document boolean does not establish authenticity, validity or applicability.
+
+**Proposed target:** distinguish WAITING_EVIDENCE, READY_TO_EVALUATE, COMPLIANT, NON_COMPLIANT and REVIEW_REQUIRED. These are design labels, not implemented enums. Evidence may arrive in any order, but must refer to the same operation and relevant versions. READY_TO_EVALUATE means inputs are available, not permission to advance. Evaluate each applicable requirement; missing, conflicting, invalid or unknown evidence cannot silently become COMPLIANT. Applicability and required evidence must be established by approved rules, not inferred from null.
+
+### Technical responsibility proposal
+
+COMUNICACAO handles channel transport, identity metadata and normalization if a channel is chosen; DIGITALIZACAO/QUALIDADE provide source-linked evidence; COMPLIANCE validates the applicable rules; the durable orchestrator coordinates pending evidence and consumes the result only after evaluation. master.route currently does not provide that coordination. A direct shared-function call remains distinct from orchestrating process(). This is a technical proposal, not an implemented workflow or a change in regulatory authority — COMPLIANCE remains the sole rule authority regardless of which component eventually carries the evidence to it.
+
+If notifications are introduced, use one logical notification with results per destination/channel. Recalculation and bounded retry are permissible; duplicate notifications or duplicate transitions are not. No email/WhatsApp delivery policy or recipient is approved for COMPLIANCE by the financial decisions.
+
+### Open business decisions
+
+- Authoritative sources, effective dates, products/markets and responsible reviewer for each ruleset.
+- Required evidence, treatment of expiry and scope of the pre-document blocking rule.
+- Escalation recipients/channel, review procedure and evidence retention.
+- Treatment of changed/revoked evidence or rules after evaluation.
+
+### Technical work pending
+
+Typed validation/results; versioned evidence and rule references; persistence ownership under ADR-007; correlation, deduplication, bounded retries and alert integration. An unknown market currently throws; the proposed review outcome is not implemented. No new thresholds or regulatory exception authority are established here.
+
+### Proposed acceptance criteria — not executed
+
+1. Complete checklist with missing laboratory evidence remains unresolved where that evidence is required; null is not pass.
+2. Unknown market, invalid numeric input, expired or contradictory required evidence cannot yield automatic approval.
+3. Evidence received in reverse order yields the same assessment for identical versions and evaluation time.
+4. Repeated evaluation may recompute, but does not duplicate downstream effects.
+5. Financial approval or a buyer message cannot override an objective regulatory failure.
+6. Channel failure is tracked independently of the compliance verdict; notification success does not constitute regulatory approval.
+7. Source/rule changes retain prior assessment evidence and follow an explicit reevaluation policy.
+
+Evidence: src/agents/compliance/index.js, aflatoxinCheck.js and alerts.js were reread for this revision. No runtime, PoC criterion or test result was changed.
 
 ## Evidence Index
 

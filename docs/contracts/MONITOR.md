@@ -244,6 +244,36 @@ No task-suggested target state progression was specified for MONITOR (unlike FIN
 
 ---
 
+## Reconciliation: financial-flow decisions and observability scope
+
+**Status:** documentary correction. RUNTIME_CODE establishes current behavior; BUSINESS_DECISION establishes approved intent, not implementation. `FINANCEIRO_DECISIONS.md`'s FIN-DEC-01 through FIN-DEC-21 authorize FINANCEIRO's confirmation, partial-payment and delivery-authorization flow. **They establish no new MONITOR authority, supply none of the three missing KPI producers, and do not resolve `MONITOR-KPI-PRODUCER-GAP`.** Several of the six corrections applied to `FINANCEIRO.md`/`COMPLIANCE.md`/`QUALIDADE.md`/`COMUNICACAO.md` (order-independence of two signals, single-authorization-two-channels) have no analogue here, because MONITOR does not participate in the confirmation flow at all — this section says so rather than force-fitting them.
+
+### What does and does not change
+
+MONITOR's three-class telemetry distinction (Business Rules, above) already correctly excludes the new financial confirmation/delivery flow, because no code anywhere produces telemetry for it — the flow does not exist in `src/` outside `FINANCEIRO_DECISIONS.md`'s approved design. `dashboard.payment_sla_pct` and the other two ungoverned fields remain governed by the same pre-existing `MONITOR-KPI-PRODUCER-GAP`; FIN-DEC-01–21 neither worsen nor resolve it, and must not be read as having supplied one of the missing producers.
+
+### Candidate future KPIs surfaced by this reconciliation (not approved, not requested)
+
+The approved confirmation/selection/delivery flow is a natural source of *new* business-KPI candidates that do not exist today and were not asked for by any FIN-DEC record: time from summary-message to valid confirmation, count of operations in `AWAITING_INPUTS`/`READY_TO_AUTHORIZE` (per `FINANCEIRO.md`'s proposed states), incidence of partial-payment releases (FIN-DEC-11/12), and per-channel notification failure rate (FIN-DEC-17). None of these are adopted here — they are flagged as a possible future business decision, consistent with this task's instruction not to invent answers to open questions.
+
+### Open business decisions
+
+- Should MONITOR's scope be extended to cover the confirmation/delivery flow at all, and if so, who defines and owns those KPI formulas? Not decided.
+- Same unresolved question as the pre-existing Open Decisions above (KPI producer ownership, cadence) — FIN-DEC-01–21 do not change it.
+
+### Technical work pending (only if the business decision above is ever made)
+
+Would require: a producer for each candidate KPI (none exists); a rule against inferring confirmation/delivery state from notification delivery or read status, mirroring the same principle already recorded in `FINANCEIRO.md`/`QUALIDADE.md` ("notification success does not constitute confirmation/approval") — a delivered-but-unread authorization must not be counted as a completed confirmation cycle; and resolution of `MONITOR-KPI-PRODUCER-GAP` for the existing six fields, which remains an independent, unresolved prerequisite.
+
+### Proposed acceptance criteria — not executed, and only relevant if this scope is ever approved
+
+1. A candidate confirmation-flow KPI must not be computed from WhatsApp/email delivery or read receipts as a proxy for the underlying business event (confirmation, selection, delivery) actually occurring.
+2. Adding any such KPI must not be treated as resolving `MONITOR-KPI-PRODUCER-GAP` for the pre-existing six fields, which remain a separate, unresolved gap.
+
+Evidence: `src/agents/monitor/index.js`, `kpiQueries.js` and `slaCalculations.js` were reread for this revision; repo-wide search confirms no code references the confirmation/delivery flow from `MONITOR`. No runtime or test was changed or executed.
+
+---
+
 ## Evidence Index
 
 | Claim | File | Symbol/Lines | Type |
@@ -258,3 +288,4 @@ No task-suggested target state progression was specified for MONITOR (unlike FIN
 | No producer exists (absence) | repo-wide search for the 6 field names outside `monitor/` | — | RUNTIME_CODE |
 | `kpiQueries.js` untested (absence) | directory listing of `src/agents/monitor/` | no `kpiQueries.test.js` | TEST (absence) |
 | Bare re-throw on Supabase failure | `src/agents/monitor/kpiQueries.js` | 9,21,35 | RUNTIME_CODE |
+| Approved financial confirmation/delivery flow, FIN-DEC-01 through FIN-DEC-21 (no MONITOR authority or KPI producer established) | `docs/contracts/FINANCEIRO_DECISIONS.md` | full document, dated 2026-09-21 | BUSINESS_DECISION |

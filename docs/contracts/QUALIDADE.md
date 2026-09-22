@@ -174,7 +174,7 @@ LLM: NO AUTHORITY
 
 ## Error Model
 
-None. No exception is thrown anywhere in this component's code for any input shape, including a malformed filename or unparseable report text — every such case degrades to `null` fields rather than a typed error or a thrown exception. This is the opposite failure posture from COMPLIANCE's checklist (which throws on an unrecognized market) — **an inconsistency across the two components that share a domain**, worth noting even though neither behavior is individually wrong.
+No typed error taxonomy is implemented. Expected unmatched string patterns can return null, but arbitrary input shapes are not safe: labReportParser uses text.match, and Firestore writes can reject. Exceptions propagate because process() has no catch. Therefore neither 'no failure mode' nor 'all inputs degrade to null' is a valid guarantee.
 
 ---
 
@@ -182,7 +182,7 @@ None. No exception is thrown anywhere in this component's code for any input sha
 
 ```
 RETRYABLE:       UNKNOWN — no excecoes.process call exists in this component
-NON_RETRYABLE:   N/A — no failure mode exists to classify (see Error Model)
+NON_RETRYABLE:   classification not implemented; invalid inputs require correction
 REQUIRES_REVIEW: needs_escalation:true is the closest signal, but nothing
                  consumes it (no escalation call, no EXCECOES wiring)
 UNKNOWN:         everything else
@@ -217,8 +217,8 @@ Not documented, not implemented. `approvedBy` is a free-text string with no vali
 ## Workflow Boundary
 
 - **Valid predecessor/event:** per `docs/ROADMAP.md`'s phase diagram: lab report uploaded (path 2) or buyer quality request outstanding (path 1). Not code-enforced — either path can be invoked at any time with any input.
-- **Successful exit:** path 2 — `aflatoxin_check.within_limit !== false`; path 1 — `approval.approved === true`.
-- **Failure exit:** path 2 — `needs_escalation: true` (advisory only, no hard stop); path 1 — none (any `approved` value is accepted).
+- **Current return, not verified approval:** path 2 can return within_limit:null; this is unresolved, not a successful quality verdict. Path 1 returns a Boolean-coerced approved field; true alone is not evidence of authenticated buyer approval.
+- **Negative/error outcomes:** path 2 can signal needs_escalation:true or return unresolved values; path 1 coerces arbitrary approved values and can fail during persistence. These are distinct from an authenticated buyer rejection.
 - **Wait/review state:** not modeled — there is no "pending buyer decision" state persisted anywhere; the approval either has been recorded (a document exists) or has not (no document, indistinguishable from "not yet asked" vs. "asked but no response yet").
 - **Downstream capability:** `docs/ROADMAP.md:16` names FINANCEIRO as the next phase after QA sign-off — **no verified code wiring**.
 
@@ -233,7 +233,7 @@ invoke('qualidade', 'evaluate_lab_report', context)
   → deterministic_gate:  NOT a gate today — needs_escalation is informational,
                           nothing currently blocks on it
   → retryable_failure:   UNKNOWN
-  → permanent_failure:   none (no throw path exists)
+  → permanent_failure:   untyped input/storage failures may propagate
   → review_required:     needs_escalation: true
   → correlation:         ftr_code (echoed input only)
 
@@ -266,6 +266,53 @@ No task-suggested target state progression was specified for QUALIDADE. Recorded
 - Should `quality_approval` be written to Supabase (matching `config/schemas.json`) in addition to or instead of Firestore? `DEFERRED_TO_ADR_007`.
 
 ---
+
+## Reconciliation: human approval and proposed flow
+
+**Status:** documentary correction and technical proposal. Current code, approved business intent and proposed engineering are separate. FIN-DEC-01 through FIN-DEC-21 authorize financial and original-document-delivery decisions only. They do not replace the buyer as quality decision-maker, authorize Rodrigo/Leonardo to approve quality on the buyer's behalf, choose a quality channel or dispense with quality evidence.
+
+### Explicit approval and authority
+
+QUALIDADE interprets laboratory evidence and records a buyer decision; COMPLIANCE owns shared regulatory thresholds. The buyer's decision and the software comparison are separate facts. Sender identity and response correlation are necessary but insufficient: a valid affirmative decision must concern the correct lot/report/request version. Negative, doubtful or ambiguous messages must not become approval.
+
+Current buyerApproval.js uses Boolean(approved): the string 'false' becomes true, while missing input becomes false. This is coercion, not semantic validation. Proposed handling distinguishes APPROVED, REJECTED and UNRESOLVED rather than treating absence as rejection or a nonempty string as approval. No mandatory wording or channel has been approved for quality.
+
+### Proposed coordination
+
+Track laboratory evidence and buyer decision independently; they may be received in either order. If a decision arrives first, retain its scoped evidence but do not infer a missing lab result or regulatory pass. The required inputs and prerequisites for progression must be explicitly defined. READY_TO_EVALUATE is distinct from quality acceptance or permission for downstream action. Unknown accreditation or within_limit:null is not automatic approval.
+
+COMUNICACAO may handle channel/identity metadata and normalize messages; QUALIDADE validates scope and records the decision; COMPLIANCE supplies regulatory evaluation; the durable orchestrator coordinates prerequisites and proceeds only on an eligible outcome. This is a technical proposal, not an implemented workflow or a change in who approves.
+
+### Repetition and notification
+
+Allow repeated calculations; prevent duplicate decision records and downstream effects using an operation/request/lot/report version and event identity. A correction or revocation is a new event, not a duplicate to discard. Timestamp-only IDs currently do not enforce uniqueness and can also collide within the same millisecond. Preserve decision history rather than overwriting contradictory replies.
+
+Any future notification needs one logical identity and results per destination/channel. Delivery success does not prove buyer approval or physical delivery. The financial rule accepting one successful channel is not automatically applicable here.
+
+### Open business decisions
+
+- Authorized buyer representatives, channel and how their identity is established.
+- Required laboratory/lot evidence, approved laboratories and buyer specifications.
+- Rejection, new analysis, conflicting decisions, revocation and report changes.
+- Notification policy, retention, review responsibility and deadlines.
+- Evidence required for acceptance; financial no-attachment decisions do not answer this.
+
+### Technical work pending
+
+Strict boolean/schema validation; authentication and message correlation; lot/report/version model; separate pending/rejected/approved states; durable storage under ADR-007; idempotent event handling, source-linked audit and error taxonomy. The currently accepted override labResultPpb versus parsed report requires conflict detection rather than silently treating precedence as verified truth.
+
+### Proposed acceptance criteria — not executed
+
+1. 'false', 'ok', a negative, uncertainty or missing input cannot become authenticated approval through Boolean coercion.
+2. Sender authorization alone does not approve a lot; wrong request/report version remains unresolved.
+3. Buyer reply and report in either order preserve both facts and wait for required evidence before progression.
+4. Duplicate messages do not duplicate effects; recalculation remains allowed.
+5. Buyer acceptance does not override a failed regulatory comparison; missing result remains unresolved.
+6. Storage failures are reported as failures, not successful recorded decisions; retry reconciles possible prior writes.
+7. Notification failure/success is independent of buyer decision and tracked per channel if notifications are implemented.
+8. A new report or conflicting decision is preserved and routed through the defined review policy, without automatically reusing prior approval.
+
+Evidence: src/agents/qualidade/index.js, buyerApproval.js and labReportParser.js were reread for this revision. No runtime or tests were changed or executed.
 
 ## Evidence Index
 
