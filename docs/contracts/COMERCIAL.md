@@ -50,6 +50,39 @@ Base do total comercial; validade da oferta; política para histórico/limite au
 
 Responsáveis nominais e datas: a definir pelo negócio. Nenhuma decisão foi assumida como aprovada.
 
+## Procedimentos de conduta incorporados (Fonte A/B)
+
+Status: regra de negócio já adotada em [QUALIDADE.md](QUALIDADE.md) (gatilho/prazo/responsável das 11 reclamações de qualidade, fontes preservadas integralmente em [CONDUTA_FONTE_A](CONDUTA_FONTE_A.txt) e [CONDUTA_FONTE_B](CONDUTA_FONTE_B.txt), precedência em [PROCEDIMENTOS_CONDUTA](PROCEDIMENTOS_CONDUTA.md)) — não duplicada aqui. Este contrato registra especificamente o papel de COMERCIAL dentro desse mesmo fluxo: interlocução vendedor/comprador, proposta de solução e, no caso de rejeição por aflatoxina na Europa, busca de comprador alternativo ou reexportação pelo vendedor. Vendedor e Comprador continuam os responsáveis humanos definidos nas fontes; nenhum agente de software os substitui. Participação de agente é proposta técnica, não aprovada e não implementada.
+
+### Papel de COMERCIAL nas reclamações de qualidade já adotadas
+
+Nas duas fontes, a etapa final de ação de praticamente todas as 11 reclamações de qualidade é a mesma: aguardar a resposta do vendedor e buscar a melhor solução para ambas as partes. Essa etapa de negociação/proposta é o papel de COMERCIAL — distinto da coleta de evidências (QUALIDADE) e da autoridade regulatória (COMPLIANCE).
+
+- **Gatilho:** QUALIDADE já registrou evidência de uma reclamação de qualidade (ver tabela em [QUALIDADE.md](QUALIDADE.md)).
+- **Ação aprovada:** intermediar entre vendedor e comprador; propor solução para ambas as partes.
+- **Evidência:** a evidência da reclamação (fotos/laudos) é responsabilidade de QUALIDADE, não deste contrato — COMERCIAL trabalha sobre o que já foi coletado.
+- **Prazo/responsável:** os mesmos já adotados por reclamação em `QUALIDADE.md` (Fonte B prevalece nas divergências de prazo/responsável) — não redefinidos aqui.
+- **Critério de aceite rastreável:** `CONDUTA_FONTE_A.txt`/`CONDUTA_FONTE_B.txt`, texto de ação de cada reclamação (ver `QUALIDADE.md` para os números de linha específicos).
+
+### Caso específico: Aflatoxina — rejeição na Europa
+
+- **Gatilho:** carga rejeitada por aflatoxina em destino na União Europeia — "No momento em que formos notificados sobre a rejeição da carga" (`CONDUTA_FONTE_A.txt:81-83`; `CONDUTA_FONTE_B.txt:79-81`, texto idêntico nas duas fontes).
+- **Ação aprovada:** procurar outro comprador em destino próximo fora da UE, **ou** solicitar a reexportação pelo vendedor, para evitar custos no porto de destino. As duas alternativas são preservadas — nenhuma é eliminada.
+- **Prazo:** Imediato (idêntico nas duas fontes).
+- **Responsável:** Vendedor (idêntico nas duas fontes) — a reexportação é executada pelo vendedor; a busca por comprador alternativo não tem responsável humano adicional nomeado nas fontes além do contexto comercial geral.
+- **Participação proposta do agente COMERCIAL (proposta técnica — não aprovada, não implementada):** `pricingLookup.js`/`negotiation.js` hoje não têm nenhum caminho de código para "comprador alternativo" nem "reexportação" — esses módulos calculam preço/histórico de negociação para uma oferta já em andamento, não buscam novos compradores. Uma participação futura proposta seria usar `pricing.js` para precificar uma oferta ao comprador alternativo já identificado por um humano — sem o agente escolher ou contatar esse comprador de forma autônoma.
+- **A busca de outro destino não dispensa avaliação de conformidade aplicável:** encontrar um comprador alternativo ou reexportar não substitui a avaliação regulatória de COMPLIANCE para o novo mercado de destino. Aflatoxina-Europa continua, nas duas fontes, com responsável Vendedor — sem a mudança de responsável que a precedência da Fonte B aplica ao caso geral de "Aflatoxina" (ver [QUALIDADE.md](QUALIDADE.md)). Qualquer novo destino tem seus próprios requisitos regulatórios, não avaliados por este registro.
+- **Pendência:** não há alçada definida para quem decide entre as duas alternativas (comprador alternativo vs. reexportação), nem condições comerciais, preço ou custo de reexportação — não inventados aqui.
+
+### Critérios de aceite propostos — procedimentos de conduta (não executados)
+
+1. Para aflatoxina-Europa, o prazo Imediato e o responsável Vendedor são mantidos independentemente de qual das duas alternativas (comprador alternativo ou reexportação) for seguida.
+2. As duas alternativas para aflatoxina-Europa (comprador alternativo, reexportação) permanecem preservadas — nenhuma é descartada por inferência, e nenhuma é tratada como obrigatória em detrimento da outra.
+3. Registrar a intenção de buscar comprador alternativo ou solicitar reexportação não autoriza automaticamente o agente COMERCIAL a contatar terceiros ou executar a reexportação — a decisão entre as alternativas e sua execução permanecem humanas.
+4. Nenhuma das duas alternativas dispensa a avaliação de conformidade regulatória do novo destino — essa avaliação continua sendo de COMPLIANCE, não deste agente, e não é presumida como satisfeita pela mera escolha de um novo comprador ou destino.
+5. A proposta de solução de COMERCIAL nunca é tratada como resolução da reclamação sem a evidência de QUALIDADE correspondente já registrada.
+6. Vendedor e Comprador não são substituídos por identificadores de agente em nenhum registro derivado deste procedimento.
+
 ## Critérios de aceite propostos
 
 Comparar preço unitário e total em FOB/CFR/CIF; crédito ausente/excedido; histórico vazio/zero; erro de consulta; limites exatos de 24h/48h; repetição da mesma solicitação.
@@ -69,6 +102,7 @@ Definir quem recebe casos pendentes, prazo, canal, identidade do aprovador, evid
 - [quoteTemplate.js](../../src/agents/comercial/quoteTemplate.js).
 - [Roadmap de intenção](../ROADMAP.md): requisitos planejados, não prova de implementação.
 - [Baseline da auditoria](../adr/CURRENT_REPOSITORY_FACTUAL_BASELINE.md).
+- [Fonte A dos procedimentos de conduta](CONDUTA_FONTE_A.txt); [Fonte B dos procedimentos de conduta](CONDUTA_FONTE_B.txt); [registro de precedência](PROCEDIMENTOS_CONDUTA.md).
 
 ## Condição para fechar o contrato
 

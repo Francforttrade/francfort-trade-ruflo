@@ -71,4 +71,16 @@ Consultar obrigatoriamente [PROCEDIMENTOS_CONDUTA](PROCEDIMENTOS_CONDUTA.md) e a
 
 - Decisões de negócio ainda não respondidas: fonte prioritária residual em divergências não cobertas por prazo/responsável; alçadas de quem executa LOI, reexportação ou contato com comprador alternativo; identidade/autenticação de quem reporta cada evidência; retenção dos registros de conduta; dias úteis vs. corridos e marco inicial da contagem de prazo (explicitamente não inventados).
 - Implementação: nenhum dos quatro contratos deste lote teve código alterado — todas as participações de agente descritas são propostas técnicas, não implementadas.
-- Terceiro lote sugerido, ainda não iniciado: COMPLIANCE (Etiquetas) e COMERCIAL (interlocução comercial e busca de comprador alternativo), conforme o mapeamento em `PROCEDIMENTOS_CONDUTA.md`.
+
+### Terceiro lote — incorporado em 2026-09-22
+
+- **COMPLIANCE:** procedimento "Etiquetas" incorporado, distinguindo etiqueta fora do padrão importador (1 dia) de etiqueta especial (2 dias), responsável Vendedor ou Comprador em ambos os subtipos (sem divergência de responsável entre as fontes). Divergência de ação (Fonte A: correção direta; Fonte B: classificação prévia do tipo) registrada como pendência, não resolvida por inferência. Deixado explícito que correção de etiqueta não comprova conformidade regulatória de nenhum mercado já coberto por `marketRequirements.js`.
+- **COMERCIAL:** papel de interlocução vendedor/comprador e proposta de solução incorporado como extensão do fluxo já adotado em QUALIDADE (sem duplicar gatilho/prazo/responsável, já registrados lá). Caso específico de aflatoxina-Europa incorporado com as duas alternativas preservadas (comprador alternativo ou reexportação pelo vendedor), prazo Imediato, responsável Vendedor. Deixado explícito que buscar novo destino não dispensa avaliação de conformidade de COMPLIANCE para esse destino.
+- Referências atualizadas em `PRODUCTION_AGENT_MATRIX.md`, `SKILLS_INVENTORY.md` e `SUPPORT_COVERAGE.md`: as citações de pendência do terceiro lote nas linhas COMPLIANCE/COMERCIAL foram substituídas por referência aos procedimentos já incorporados.
+
+### Pendências que continuam em aberto após o terceiro lote
+
+- Alçada de quem decide entre comprador alternativo e reexportação no caso de aflatoxina-Europa; condições comerciais, preço ou custo de reexportação — não inventados.
+- Se "etiqueta fora do padrão importador" mapeia a um requisito regulatório que COMPLIANCE deveria passar a aplicar — decisão de negócio/técnica em aberto.
+- As mesmas pendências residuais do segundo lote (retenção, identidade/autenticação, dias úteis vs. corridos) continuam sem resposta.
+- Nenhum código foi alterado neste lote — participações de agente descritas continuam propostas técnicas, não implementadas.

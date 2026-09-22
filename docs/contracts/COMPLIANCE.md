@@ -259,6 +259,48 @@ Typed validation/results; versioned evidence and rule references; persistence ow
 
 Evidence: src/agents/compliance/index.js, aflatoxinCheck.js and alerts.js were reread for this revision. No runtime, PoC criterion or test result was changed.
 
+---
+
+## Conduct Procedure Incorporated (Fonte A/B — Etiquetas / Labeling)
+
+**Status:** BUSINESS_DECISION (adoption + Fonte-B precedence on deadline/responsible party) reconciliation. TECHNICAL_PROPOSAL for agent participation — not approved, not implemented. Sources preserved verbatim: `CONDUTA_FONTE_A.txt`, `CONDUTA_FONTE_B.txt`; precedence recorded in `PROCEDIMENTOS_CONDUTA.md`. Vendedor/Comprador remain the human responsible parties — COMPLIANCE does not replace them, and this section does not transfer this contract's regulatory-threshold authority (Business Rules #1, market aflatoxin/document requirements) to this commercial-dispute procedure: labeling correction is a distinct concern from the market-requirements ruleset COMPLIANCE already owns.
+
+### Adopted rule — two subtypes
+
+Fonte A describes a single, undifferentiated "Etiquetas" case (1 dia, Vendedor ou Comprador). Fonte B splits it into two subtypes with different deadlines — the split itself, being about deadline, is adopted per Fonte-B precedence:
+
+| Subtype | Trigger | Deadline (adopted) | Responsible (identical in both sources) | Source |
+|---|---|---|---|---|
+| Etiqueta fora do padrão importador | Label doesn't match the importing market's required standard | 1 dia | Vendedor ou Comprador | `CONDUTA_FONTE_B.txt:5-8` |
+| Etiqueta especial | Special/non-standard labeling case | 2 dias | Vendedor ou Comprador | `CONDUTA_FONTE_B.txt:5-8` |
+
+Responsible party is identical in both sources (Vendedor ou Comprador) — no divergence there to resolve; only the two-subtype deadline split comes from Fonte B.
+
+### Ação — registered per source, sequence not specified
+
+Fonte A: "Solicitar correção ao vendedor ou comprador" (`CONDUTA_FONTE_A.txt:21-23`). Fonte B: "Informar qual o tipo de problema, etiqueta fora do padrão importador ou etiqueta especial" (`CONDUTA_FONTE_B.txt:5-6`). Both actions are preserved exactly as stated. **Neither source expressly says whether correction happens without prior classification, or whether classification precedes correction** — no source states an operational sequence between the two actions, and none is invented here. Presenting them together is not a claim that they conflict, nor that one is a prerequisite for the other.
+
+### Two distinct open questions — regulatory requirement versus implementation decision
+
+These are separate questions, not one:
+
+1. **Whether a regulatory labeling requirement actually applies** (e.g., whether "etiqueta fora do padrão importador" corresponds to a real, sourced requirement for Egypt/Algeria/Russia or any other market) — this needs an authoritative, dated regulatory source and business validation. `marketRequirements.js` (Business Rules #1) defines aflatoxin limits and required-document lists for Egypt/Algeria/Russia only; it names no labeling rule today, and this section does not assert that one exists.
+2. **Whether COMPLIANCE should implement a check for it in code**, once/if question 1 is answered — a separate technical decision, contingent on question 1's outcome, not decided by adopting this conduct procedure and not decided here.
+
+Registering this conduct procedure does not resolve either question, and does not establish that a corrected label satisfies any market's regulatory labeling requirement.
+
+### Proposed agent participation for COMPLIANCE (TECHNICAL_PROPOSAL — not approved, not implemented)
+
+`compliance/index.js` today has no labeling-related field, module, or check. Proposed, unimplemented: COMPLIANCE could record which labeling subtype a case was classified as and surface the applicable deadline above — without deciding whether the label as corrected actually satisfies destination requirements, which remains a human/regulatory determination outside this component's current scope.
+
+### Acceptance criteria proposed — conduct procedure (not executed)
+
+1. A labeling case classified as "fora do padrão importador" carries a 1-dia deadline; classified as "etiqueta especial" carries 2 dias — both with Vendedor ou Comprador as responsible party, regardless of which source's action text is consulted.
+2. Fonte A's corrective action and Fonte B's classification action are each preserved as stated; no record derived from this procedure asserts an operational order between them or treats one as satisfying the other.
+3. A corrected label is never treated as proof of regulatory compliance for any market this contract governs.
+4. Whether a labeling requirement applies (regulatory question) and whether COMPLIANCE implements a check for it (technical decision) are recorded as two separate, unresolved questions — never collapsed into one.
+5. Vendedor/Comprador are never replaced by an agent identifier in any record derived from this procedure.
+
 ## Evidence Index
 
 | Claim | File | Symbol/Lines | Type |
@@ -274,3 +316,4 @@ Evidence: src/agents/compliance/index.js, aflatoxinCheck.js and alerts.js were r
 | Import direction qualidade→compliance | `src/agents/qualidade/index.js` | 6-7 | RUNTIME_CODE |
 | Import direction digitalizacao→compliance | `src/agents/digitalizacao/crossValidation.js` | 2-3 | RUNTIME_CODE |
 | No escalation wiring exists | repo-wide search | no `excecoes` import in `compliance/` | RUNTIME_CODE |
+| Conduct procedure — labeling (Fonte A/B), adopted with Fonte-B precedence on deadline | `docs/contracts/CONDUTA_FONTE_A.txt`, `docs/contracts/CONDUTA_FONTE_B.txt`, `docs/contracts/PROCEDIMENTOS_CONDUTA.md` | full documents, registered 2026-09-22 | BUSINESS_DECISION |

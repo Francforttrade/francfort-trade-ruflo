@@ -25,9 +25,9 @@ Status: levantamento local em 2026-09-10. Sete minutas novas não encerram as la
 | Agente | Material a localizar/validar |
 |---|---|
 | [COMUNICACAO](COMUNICACAO.md) | Mensagens com gabarito; respostas aprovadas; vínculo conversa/FTR |
-| [COMERCIAL](COMERCIAL.md) | Modelos de oferta; política de preços/crédito; alçadas. Interlocução comercial/comprador alternativo mapeada em [PROCEDIMENTOS_CONDUTA.md](PROCEDIMENTOS_CONDUTA.md), ainda não incorporada (3º lote) |
+| [COMERCIAL](COMERCIAL.md) | Modelos de oferta; política de preços/crédito; alçadas. Interlocução comercial, proposta de solução e caso de aflatoxina-Europa (comprador alternativo/reexportação) já incorporados |
 | [CONTRATOS](CONTRATOS.md) | Contrato padrão; cláusulas; aditivos e assinaturas anonimizadas |
-| [COMPLIANCE](COMPLIANCE.md) | Matriz por mercado/produto; fontes oficiais datadas; responsáveis. Procedimento "Etiquetas" mapeado em `PROCEDIMENTOS_CONDUTA.md`, ainda não incorporado (3º lote) |
+| [COMPLIANCE](COMPLIANCE.md) | Matriz por mercado/produto; fontes oficiais datadas; responsáveis. Procedimento "Etiquetas" (fora do padrão importador/especial) já incorporado |
 | [DOCUMENTACAO](DOCUMENTACAO.md) | Modelos por tipo/mercado; instruções de emissão e assinatura. Procedimentos de conduta (documentação errada, cópias, DHL/LOI) já incorporados |
 | [FINANCEIRO](FINANCEIRO.md) | Confirmação de crédito (canal e responsáveis já **aprovados** em [FIN-DEC-01–21](FINANCEIRO_DECISIONS.md), não implementados); política de conciliação; alçadas |
 | [QUALIDADE](QUALIDADE.md) | Laudos com gabaritos; especificações do comprador; fonte de acreditação. 11 procedimentos de conduta de qualidade já incorporados |
