@@ -314,6 +314,50 @@ Strict boolean/schema validation; authentication and message correlation; lot/re
 
 Evidence: src/agents/qualidade/index.js, buyerApproval.js and labReportParser.js were reread for this revision. No runtime or tests were changed or executed.
 
+---
+
+## Conduct Procedures Incorporated (Fonte A/B — Critical Quality Complaints)
+
+**Status:** BUSINESS_DECISION (adoption + Fonte-B precedence on deadline/responsible party) reconciliation. TECHNICAL_PROPOSAL for agent participation — not approved, not implemented. Sources preserved verbatim: `CONDUTA_FONTE_A.txt`, `CONDUTA_FONTE_B.txt`; precedence recorded in `PROCEDIMENTOS_CONDUTA.md`. Where Fonte B diverges from Fonte A on prazo (deadline) or responsável (responsible party), Fonte B prevails, per the user's decision of 2026-09-22. Action/evidence differences between the sources are **not** resolved by that precedence and are flagged as pendência below. **Vendedor/Comprador remain the human responsible parties named in the sources — QUALIDADE does not replace them, and this section does not transfer COMPLIANCE's regulatory-threshold authority (Business Rules #4, Boundary vs. COMPLIANCE above) to a "responsável" field below: "responsável" here is commercial/dispute-resolution ownership of the complaint, not regulatory pass/fail authority.**
+
+### Adopted rules (deadline/responsible — Fonte B prevails where it diverges from Fonte A)
+
+| Complaint | Trigger | Deadline (adopted) | Responsible (adopted) | Source |
+|---|---|---|---|---|
+| Divergência de Peso | Buyer disputes shipped weight | 1 dia | Vendedor | CONDUTA_FONTE_A.txt:30-32; CONDUTA_FONTE_B.txt:31-33 (identical in both — no divergence) |
+| Infestação (insetos vivos/mortos) | Buyer reports live/dead insect infestation | 2 dias (Fonte B prevails; Fonte A said 1 dia) | Vendedor e Comprador (same in both) | CONDUTA_FONTE_A.txt:41-43; CONDUTA_FONTE_B.txt:41-43 |
+| Produto Danificado por Insetos | Buyer reports insect damage | 2 dias (Fonte B prevails) | Vendedor e Comprador | CONDUTA_FONTE_A.txt:45-47; CONDUTA_FONTE_B.txt:45-47 |
+| FFA (Acidez) | Buyer disputes free fatty acid result | 2 dias (Fonte B prevails) | Vendedor e Comprador | CONDUTA_FONTE_A.txt:52-54; CONDUTA_FONTE_B.txt:50-52 |
+| PV (Peróxido) | Buyer disputes peroxide value | 2 dias (Fonte B prevails) | Vendedor e Comprador | CONDUTA_FONTE_A.txt:56-58; CONDUTA_FONTE_B.txt:54-56 |
+| Sacos Rasgados | Buyer reports torn bags | 2 dias (Fonte B prevails) | Vendedor e Comprador | CONDUTA_FONTE_A.txt:60-62; CONDUTA_FONTE_B.txt:58-60 |
+| Grãos Rachados | Buyer reports cracked grains | 2 dias (Fonte B prevails) | Vendedor e Comprador | CONDUTA_FONTE_A.txt:65-67; CONDUTA_FONTE_B.txt:63-65 |
+| Grão Descascados | Buyer reports dehusked grains | 2 dias (Fonte B prevails) | Vendedor e Comprador | CONDUTA_FONTE_A.txt:69-71; CONDUTA_FONTE_B.txt:67-69 |
+| Aflatoxina | Buyer disputes aflatoxin result | 2 dias (Fonte B prevails; Fonte A said 1 dia) | Vendedor e Comprador (Fonte B prevails; Fonte A said Vendedor only) | CONDUTA_FONTE_A.txt:77-79; CONDUTA_FONTE_B.txt:75-77 |
+| Aflatoxina — EUROPA (rejeição na UE) | Cargo rejected on arrival in an EU destination | Imediato (identical in both — carved out of the general 2-dias bucket) | Vendedor | CONDUTA_FONTE_A.txt:81-83; CONDUTA_FONTE_B.txt:79-81 |
+| Sacos Molhados e Mofados | Buyer reports wet/moldy bags | 2 dias (Fonte B prevails; Fonte A said 1 dia) | Vendedor (same in both) | CONDUTA_FONTE_A.txt:85-87; CONDUTA_FONTE_B.txt:83-85 |
+
+For every row except Infestação, the approved action text is identical between Fonte A and Fonte B (only the deadline, and for Aflatoxina also the responsible party, diverge) — the action itself is not in dispute, so no pendência is recorded for it. `Aflatoxina — EUROPA`'s action ("procurar outro comprador em destinos próximos que não seja de países da UE ou solicitar a reexportação pelo vendedor") is identical in both sources.
+
+### Ação divergence not resolved by precedence (pendência)
+
+**Infestação (insetos vivos/mortos):** Fonte A — request photo evidence from the buyer, await the vendor's response and a proposal. Fonte B — request photo **and video** evidence, forward it to the vendor for supporting/refuting documents, then propose a solution once received. This is an action/evidence difference, not a deadline/responsible difference — Fonte B's extra verification step is **not** adopted by inference; both versions are registered, and which one governs remains an open business decision.
+
+### Aflatoxina and reexportação — no presumption of regulatory waiver
+
+Adopting this conduct procedure records the *commercial* dispute-handling sequence (request evidence, await vendor response, propose a solution, or for EU rejections, seek an alternative non-EU buyer or request reexport by the vendor). It does **not**: (a) waive or substitute COMPLIANCE's regulatory aflatoxin threshold (`marketRequirements.js`, per this contract's own Boundary vs. COMPLIANCE section) — a buyer complaint being handled commercially says nothing about whether the shipment passes the regulatory limit; (b) authorize QUALIDADE or any agent to approve reexport, contact an alternative buyer, or take any external action automatically; or (c) presume any destination authority accepts a reexported or redirected cargo. FIN-DEC-01–21 do not address aflatoxin disputes or reexport and do not change anything here. Who is authorized to actually execute a reexport or contact an alternative buyer, and under what commercial terms, remains an open business decision — not decided by this registration.
+
+### Proposed agent participation for QUALIDADE (TECHNICAL_PROPOSAL — not approved, not implemented)
+
+`qualidade/index.js`'s existing `aflatoxin_check`/`needs_escalation` computation (Output Contract, above) already produces a pass/fail/unresolved signal from lab evidence — but nothing in current code triggers on a *buyer complaint* (these conduct procedures are reactive to a buyer report, not to a lab report QUALIDADE parses today). Proposed, unimplemented: QUALIDADE could record a complaint-received event (trigger, complaint type, buyer evidence reference) using the same non-deciding posture as `buyerApproval.js` — recording, not adjudicating, whether the complaint is upheld. This would not compute or override `aflatoxin_check.within_limit`, would not decide the commercial proposal/solution, and would not authorize reexport. No code exists for any of this today.
+
+### Acceptance criteria proposed — conduct procedures (not executed)
+
+1. Every complaint above keeps Vendedor/Comprador (as adopted per row) as the responsible party and the adopted deadline, regardless of which source's action text is consulted.
+2. Aflatoxina's commercial dispute-handling deadline/responsible-party change (per Fonte B) does not alter `aflatoxin_check.within_limit`'s regulatory computation, which remains COMPLIANCE's threshold applied by this component (Business Rules #4).
+3. Infestação's action/evidence pendência (photos vs. photos+video, extra vendor-verification step) is not silently resolved — a future implementation must record which version was actually followed, not assume one.
+4. No procedure above is treated as authorizing reexport, an alternative-buyer contact, or any external action without separate, explicit authorization.
+5. Comprador and Vendedor are never replaced by an agent identifier in any record derived from this section.
+
 ## Evidence Index
 
 | Claim | File | Symbol/Lines | Type |
@@ -329,3 +373,4 @@ Evidence: src/agents/qualidade/index.js, buyerApproval.js and labReportParser.js
 | Buyer-approval endpoint never implemented | `docs/ROADMAP.md` | 275-278 (unchecked) vs. repo-wide search (no matching endpoint/parser) | ROADMAP + RUNTIME_CODE (absence) |
 | `quality_approval` schema shape mismatch | `config/schemas.json` | Compliance.quality_approval | CONFIGURATION |
 | No HTTP route exists | `src/routes/index.js` | absence, full-file review | RUNTIME_CODE |
+| Conduct procedures — quality complaints (Fonte A/B), adopted with Fonte-B precedence on deadline/responsible | `docs/contracts/CONDUTA_FONTE_A.txt`, `docs/contracts/CONDUTA_FONTE_B.txt`, `docs/contracts/PROCEDIMENTOS_CONDUTA.md` | full documents, registered 2026-09-22 | BUSINESS_DECISION |
