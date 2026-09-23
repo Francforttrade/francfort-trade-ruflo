@@ -1,0 +1,25 @@
+Execution Info:
+  WorkflowId            ftr-poc-0001
+  RunId                 01a08a67-2cf6-710b-82cf-63e694e3e6f2
+  Type                  complianceWorkflow
+  Namespace             default
+  TaskQueue             adr001a-temporal-poc
+  AssignedBuildId        
+  StartTime             6 seconds ago
+  CloseTime             6 seconds ago
+  ExecutionTime         6 seconds ago
+  SearchAttributes      map[BuildIds:metadata:{key:"encoding" value:"json/plain"} metadata:{key:"type" value:"KeywordList"} data:"[\"unversioned\",\"unversioned:@temporalio/worker@1.23.0+8c8597c7a36ec4da7509c5e680b40098fa2a038db407a2381e5a78f81b2b0055\"]"]
+  StateTransitionCount  7
+  HistoryLength         11
+  HistorySize           2304
+  RootWorkflowId        ftr-poc-0001
+  RootRunId             01a08a67-2cf6-710b-82cf-63e694e3e6f2
+Extended Execution Info:
+  CancelRequested    false
+  OriginalStartTime  6 seconds ago
+
+Results:
+  RunTime         360ms
+  Status          COMPLETED
+  Result          {"aflatoxin_check":{"limit_ppb":2,"result_ppb":1,"within_limit":true},"agent":"compliance","alerts":null,"checklist":{"complete":true,"items":[{"document":"ACID","present":true}],"market":"Egypt"},"ftr_code":"ftr-poc-0001","market":"Egypt"}
+  ResultEncoding  json/plain

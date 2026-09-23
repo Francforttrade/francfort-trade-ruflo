@@ -1,0 +1,148 @@
+### test08-a-payment-unknown-1789027499343 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:04:59Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+    4  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:04:59Z  ActivityTaskScheduled     
+    6  2026-09-10T08:04:59Z  ActivityTaskStarted       
+    7  2026-09-10T08:04:59Z  ActivityTaskCompleted     
+    8  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+   10  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:04:59Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"finalState":"PAYMENT_UNKNOWN","path":["PAYMENT_UNKNOWN"],"releaseEligible":false}
+  ResultEncoding  json/plain
+
+### test08-b-signal-detected-1789027499415 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:04:59Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+    4  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:04:59Z  ActivityTaskScheduled     
+    6  2026-09-10T08:04:59Z  ActivityTaskStarted       
+    7  2026-09-10T08:04:59Z  ActivityTaskCompleted     
+    8  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+   10  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:04:59Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"finalState":"PAYMENT_SIGNAL_DETECTED","path":["PAYMENT_UNKNOWN","PAYMENT_SIGNAL_DETECTED"],"releaseEligible":false}
+  ResultEncoding  json/plain
+
+### test08-c-evidence-received-1789027499465 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:04:59Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+    4  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:04:59Z  ActivityTaskScheduled     
+    6  2026-09-10T08:04:59Z  ActivityTaskStarted       
+    7  2026-09-10T08:04:59Z  ActivityTaskCompleted     
+    8  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+   10  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:04:59Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"finalState":"PAYMENT_EVIDENCE_RECEIVED","path":["PAYMENT_UNKNOWN","PAYMENT_SIGNAL_DETECTED","PAYMENT_EVIDENCE_RECEIVED"],"releaseEligible":false}
+  ResultEncoding  json/plain
+
+### test08-d-validated-1789027499511 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:04:59Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+    4  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:04:59Z  ActivityTaskScheduled     
+    6  2026-09-10T08:04:59Z  ActivityTaskStarted       
+    7  2026-09-10T08:04:59Z  ActivityTaskCompleted     
+    8  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+   10  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:04:59Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"finalState":"PAYMENT_VALIDATED","path":["PAYMENT_UNKNOWN","PAYMENT_SIGNAL_DETECTED","PAYMENT_EVIDENCE_RECEIVED","PAYMENT_VALIDATED"],"releaseEligible":false}
+  ResultEncoding  json/plain
+
+### test08-e-release-eligible-1789027499553 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:04:59Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+    4  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:04:59Z  ActivityTaskScheduled     
+    6  2026-09-10T08:04:59Z  ActivityTaskStarted       
+    7  2026-09-10T08:04:59Z  ActivityTaskCompleted     
+    8  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+   10  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:04:59Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"finalState":"RELEASE_ELIGIBLE","path":["PAYMENT_UNKNOWN","PAYMENT_SIGNAL_DETECTED","PAYMENT_EVIDENCE_RECEIVED","PAYMENT_VALIDATED","BANK_CREDIT_CONFIRMED","RELEASE_ELIGIBLE"],"releaseEligible":true}
+  ResultEncoding  json/plain
+
+### test08-retry-1789027499697 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:04:59Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:04:59Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:04:59Z  WorkflowTaskStarted       
+    4  2026-09-10T08:04:59Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:04:59Z  ActivityTaskScheduled     
+    6  2026-09-10T08:05:02Z  ActivityTaskStarted       
+    7  2026-09-10T08:05:02Z  ActivityTaskCompleted     
+    8  2026-09-10T08:05:02Z  WorkflowTaskScheduled     
+    9  2026-09-10T08:05:02Z  WorkflowTaskStarted       
+   10  2026-09-10T08:05:02Z  WorkflowTaskCompleted     
+   11  2026-09-10T08:05:02Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"attempt":3,"gateResult":{"finalState":"RELEASE_ELIGIBLE","path":["PAYMENT_UNKNOWN","PAYMENT_SIGNAL_DETECTED","PAYMENT_EVIDENCE_RECEIVED","PAYMENT_VALIDATED","BANK_CREDIT_CONFIRMED","RELEASE_ELIGIBLE"],"releaseEligible":true}}
+  ResultEncoding  json/plain
+
+### test08-signal-1789027502760 ###
+Progress:
+  ID           Time                     Type           
+    1  2026-09-10T08:05:02Z  WorkflowExecutionStarted  
+    2  2026-09-10T08:05:02Z  WorkflowTaskScheduled     
+    3  2026-09-10T08:05:02Z  WorkflowTaskStarted       
+    4  2026-09-10T08:05:02Z  WorkflowTaskCompleted     
+    5  2026-09-10T08:05:03Z  WorkflowExecutionSignaled 
+    6  2026-09-10T08:05:03Z  WorkflowTaskScheduled     
+    7  2026-09-10T08:05:03Z  WorkflowTaskStarted       
+    8  2026-09-10T08:05:03Z  WorkflowTaskCompleted     
+    9  2026-09-10T08:05:03Z  ActivityTaskScheduled     
+   10  2026-09-10T08:05:03Z  WorkflowExecutionSignaled 
+   11  2026-09-10T08:05:03Z  WorkflowTaskScheduled     
+   12  2026-09-10T08:05:03Z  WorkflowTaskStarted       
+   13  2026-09-10T08:05:03Z  WorkflowTaskCompleted     
+   14  2026-09-10T08:05:03Z  ActivityTaskStarted       
+   15  2026-09-10T08:05:03Z  ActivityTaskCompleted     
+   16  2026-09-10T08:05:03Z  WorkflowTaskScheduled     
+   17  2026-09-10T08:05:03Z  WorkflowTaskStarted       
+   18  2026-09-10T08:05:03Z  WorkflowTaskCompleted     
+   19  2026-09-10T08:05:03Z  WorkflowExecutionCompleted
+
+Results:
+  Status          COMPLETED
+  Result          {"gateResult":{"finalState":"RELEASE_ELIGIBLE","path":["PAYMENT_UNKNOWN","PAYMENT_SIGNAL_DETECTED","PAYMENT_EVIDENCE_RECEIVED","PAYMENT_VALIDATED","BANK_CREDIT_CONFIRMED","RELEASE_ELIGIBLE"],"releaseEligible":true},"signalCount":2}
+  ResultEncoding  json/plain
+

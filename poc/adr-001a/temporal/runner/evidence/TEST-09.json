@@ -1,0 +1,61 @@
+{
+  "testId": "TEST-09-AUDIT-CORRELATION",
+  "workflowId": "test09-audit-correlation-1789027564164",
+  "engineRunId": "01a08a5a-3a92-7867-93e7-588c5383fdbf",
+  "sideA_engineIdentifiers": {
+    "workflowId": "test09-audit-correlation-1789027564164",
+    "runId": "01a08a5a-3a92-7867-93e7-588c5383fdbf"
+  },
+  "sideB_syntheticAuditRecord": {
+    "workflowId": "test09-audit-correlation-1789027564164",
+    "runId": "01a08a5a-3a92-7867-93e7-588c5383fdbf",
+    "correlationId": "ftr-poc-t09",
+    "event": "compliance_check_completed",
+    "outcome": {
+      "agent": "compliance",
+      "ftr_code": "ftr-poc-t09",
+      "market": "Egypt",
+      "aflatoxin_check": {
+        "limit_ppb": 2,
+        "result_ppb": 1,
+        "within_limit": true
+      },
+      "checklist": {
+        "market": "Egypt",
+        "items": [
+          {
+            "document": "ACID",
+            "present": true
+          }
+        ],
+        "complete": true
+      },
+      "alerts": []
+    },
+    "recordedAt": "2026-09-10T08:06:04.217Z"
+  },
+  "correlationHolds": true,
+  "complianceResult": {
+    "agent": "compliance",
+    "ftr_code": "ftr-poc-t09",
+    "market": "Egypt",
+    "aflatoxin_check": {
+      "limit_ppb": 2,
+      "result_ppb": 1,
+      "within_limit": true
+    },
+    "checklist": {
+      "market": "Egypt",
+      "items": [
+        {
+          "document": "ACID",
+          "present": true
+        }
+      ],
+      "complete": true
+    },
+    "alerts": []
+  },
+  "passCriteria": "Correlation field present and matching in both the engine history (side A) and the synthetic audit record (side B).",
+  "verdict": "PASS"
+}

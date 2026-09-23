@@ -1,0 +1,32 @@
+{
+  "testId": "TEST-07-DUPLICATE-PROTECTION",
+  "workflowId": "test07-duplicate-1789027317747",
+  "runId": "01a08a56-7803-74fd-b611-9f7f82e17da5",
+  "secondStartRejected": true,
+  "secondStartErrorName": "WorkflowExecutionAlreadyStartedError",
+  "activityScheduledEventCount": 1,
+  "workflowStartedEventCount": 1,
+  "result": {
+    "agent": "compliance",
+    "ftr_code": "ftr-poc-t07",
+    "market": "Egypt",
+    "aflatoxin_check": {
+      "limit_ppb": 2,
+      "result_ppb": 1,
+      "within_limit": true
+    },
+    "checklist": {
+      "market": "Egypt",
+      "items": [
+        {
+          "document": "ACID",
+          "present": true
+        }
+      ],
+      "complete": true
+    },
+    "alerts": []
+  },
+  "passCriteria": "Exactly one execution's work occurs for the duplicated ID; the second start call surfaces a clear reuse-policy response.",
+  "verdict": "PASS"
+}

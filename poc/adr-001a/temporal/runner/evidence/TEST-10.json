@@ -1,0 +1,63 @@
+{
+  "testId": "TEST-10-VERSION-EVOLUTION",
+  "v1WorkerPid": 2232,
+  "v2WorkerPid": 3480,
+  "v2Ready": true,
+  "inFlight": {
+    "workflowId": "test10-inflight-1789027661371",
+    "runId": "01a08a5b-b645-7238-bc41-4ec588c333b5",
+    "pausedBeforeSwap": true,
+    "result": {
+      "agent": "compliance",
+      "ftr_code": "ftr-poc-t10",
+      "market": "Egypt",
+      "aflatoxin_check": {
+        "limit_ppb": 2,
+        "result_ppb": 1,
+        "within_limit": true
+      },
+      "checklist": {
+        "market": "Egypt",
+        "items": [
+          {
+            "document": "ACID",
+            "present": true
+          }
+        ],
+        "complete": true
+      },
+      "alerts": [],
+      "pocVersion": "v2-patched-branch"
+    },
+    "tookNewBranch": true
+  },
+  "fresh": {
+    "workflowId": "test10-fresh-1789027675487",
+    "runId": "01a08a5b-ed62-748d-8bf4-0b12bcaf33ab",
+    "result": {
+      "agent": "compliance",
+      "ftr_code": "ftr-poc-t10",
+      "market": "Egypt",
+      "aflatoxin_check": {
+        "limit_ppb": 2,
+        "result_ppb": 1,
+        "within_limit": true
+      },
+      "checklist": {
+        "market": "Egypt",
+        "items": [
+          {
+            "document": "ACID",
+            "present": true
+          }
+        ],
+        "complete": true
+      },
+      "alerts": [],
+      "pocVersion": "v2-patched-branch"
+    },
+    "tookNewBranch": true
+  },
+  "passCriteria": "In-flight instance completes deterministically under original (pre-patch) behavior; a freshly started instance takes the new, patched branch. No non-determinism error on either.",
+  "verdict": "FAIL"
+}
