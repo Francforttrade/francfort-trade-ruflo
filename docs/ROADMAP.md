@@ -4,6 +4,8 @@
 
 ## 📊 MATRIZ RESPONSABILIDADES (11 AGENTES + ORQUESTRADOR)
 
+> **Nota factual (2026-09-24):** esta matriz lista 11 agentes. O runtime registra 12 (`src/orchestrator/master.js`, objeto `AGENTS`, linhas 15-28); `digitalizacao` não consta desta matriz. Ver `docs/adr/CURRENT_REPOSITORY_FACTUAL_BASELINE.md`, seção 9 (CONFLICT).
+
 | Agent | Input | Process | Output | Critical Flow | SLA |
 |-------|-------|---------|--------|---|---|
 | **ORQUESTRADOR-MASTER** | Email/WhatsApp/Manual | State machine validation, FTR phase routing, mutex lock | Routing decision to agent queue | Gate-keeper: 70% determinístico (valid FTR, status enum, data completeness) | Real-time |

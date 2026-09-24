@@ -9,6 +9,9 @@ graph TB
         MASTER["🎛️ ORQUESTRADOR-MASTER<br/>State Machine Router<br/>- FTR validation<br/>- Phase sequencing<br/>- Mutex lock per FTR<br/>- 70% determinístico<br/>- 30% AI delegation"]
     end
 
+    %% NOTA FACTUAL (2026-09-24): este diagrama mostra 11 agentes. O runtime registra 12
+    %% (src/orchestrator/master.js, objeto AGENTS, linhas 15-28); digitalizacao está omitido deste diagrama.
+    %% Ver docs/adr/CURRENT_REPOSITORY_FACTUAL_BASELINE.md, seção 9 (CONFLICT).
     subgraph "🤖 CAMADA AGENTES (11 AGENTS)"
         COMUNICACAO["📢 COMUNICACAO<br/>- Parse email/WhatsApp<br/>- Extract FTR/Booking/Invoice<br/>- Route to proper agent<br/>- Response templating"]
         

@@ -57,7 +57,7 @@ This section records what is known about each candidate's *fit against the factu
 
 **Temporal — ELIGIBLE**
 - Supports the durability properties named in the Critical PoC Invariant (below) as first-class primitives (durable workflow execution, deterministic replay, activities-as-adapters model).
-- No Temporal SDK, client, or infrastructure reference exists anywhere in this repository today — eligibility is asserted on the basis of the engine's published capability model, not on any repository evidence, because no repository evidence exists yet. This absence is itself factual and is recorded, not filled in with an external claim presented as repository fact.
+- No Temporal SDK, client, or infrastructure reference exists in the production application (`src/`, root `package.json`). The only Temporal references in this repository are the isolated PoC under `poc/adr-001a/temporal/` (Temporal TypeScript SDK `^1.23.0` in `poc/adr-001a/temporal/package.json`, which declares itself "not part of the Francfort Trade production application"), added in commit `178022a` — see "PoC Execution Record (factual)" below. Eligibility as stated here remains asserted on the basis of the engine's published capability model. *(Updated 2026-09-24: the original sentence stated that no Temporal reference existed anywhere in the repository, which was true when written and is no longer true after `178022a`.)*
 
 **Google Cloud Workflows — ELIGIBLE**
 - Same status as Temporal: no reference exists in this repository. The project already runs on Google Cloud (`cloudbuild.yaml`, `firebase.json`, `@google-cloud/firestore` dependency in `package.json`) — this is a factual adjacency (existing GCP footprint), not an evaluation of fit, and is recorded as such.
@@ -68,7 +68,23 @@ This section records what is known about each candidate's *fit against the factu
 **Ruflo — NOT PROMOTED TO ADR-001A**
 - `Ruflo`/`RDIA` in this repository refers to the Rúflo Document Intelligence Agent (`docs/RDIA_PRD.md`, implemented as `src/agents/digitalizacao/`), a deterministic document-classification/extraction component, not a workflow engine. It is not a candidate for the durable-orchestration role this ADR evaluates, and is excluded from the candidate list on that basis — its own maturity is recorded separately in `CURRENT_REPOSITORY_FACTUAL_BASELINE.md` §8.
 
-**No PoC has been executed.** No benchmark, spike, or integration test against any candidate exists in this repository as of this document. This section will be updated with actual evaluation evidence only after a PoC is separately authorized and executed.
+**PoC execution status (updated 2026-09-24):** the Temporal track was executed on 2026-09-10 (commit `178022a`); the GCP Workflows track was **not executed**; no Custom control-baseline design or test exists. No comparative evaluation between candidates has been performed. *(The original sentence here read: "No PoC has been executed." It was true when written.)*
+
+### PoC Execution Record (factual)
+
+Source: `poc/adr-001a/temporal/TEST_CONTRACT.md` (per-test STATUS lines and the "EXECUTION PASS" / "TEST-01 EXECUTION" records at its end, plus its appended errata addendum) and `git log`. This record is sourced from those files, not from `CURRENT_REPOSITORY_FACTUAL_BASELINE.md`. It does not change this ADR's STATUS, WINNER, DECISION, PROPOSED DECISION or FINAL DECISION, and does not evaluate, prefer or select any candidate.
+
+| Track | Executed | Where | Result recorded |
+|---|---|---|---|
+| Temporal | Yes — 2026-09-10, commit `178022a` | `poc/adr-001a/temporal/` (isolated; not referenced by `src/` or root `package.json`) | TEST-01 through TEST-09: PASS. TEST-10: FAIL on the original scenario; PASS on a corrected additive scenario (addendum). Both TEST-10 outcomes are preserved in `TEST_CONTRACT.md`. |
+| GCP Workflows | **No** | — | None. Execution was blocked on the absence of a safe GCP project (`ADR-001A-POC-PREFLIGHT.md` §18). |
+| Custom (control baseline) | No | — | None. |
+
+Recorded scope limits of the Temporal execution, as stated in `TEST_CONTRACT.md`:
+- Temporal Server was local, in-memory/ephemeral; recovery after a Temporal **Server** crash/restart was not tested (`BLOCKED_BY_PERSISTENCE`).
+- Inputs were synthetic; several tests used PoC-local test doubles rather than production components (e.g. TEST-06 decision-recording stub, TEST-08 financial-gate state-sequence double, TEST-09 in-memory audit record).
+- Each invariant was exercised in its own test Workflow; this record makes no claim that a single FTR execution exhibited all ten invariants together.
+- Three `*.log` files cited as evidence in `TEST_CONTRACT.md` are not versioned and are not available in the repository (see its errata addendum).
 
 ---
 
@@ -163,7 +179,7 @@ This reflects the factual production baseline (§1 of the baseline document: no 
 
 ## PROPOSED DECISION
 
-Not yet formed. No PoC evidence exists (see EVALUATION EVIDENCE above — all candidates are ELIGIBLE by capability model only, none by demonstrated fit against this repository). A proposed decision requires PoC execution results, which are not authorized by this document.
+Not yet formed. PoC evidence exists for the Temporal track only (executed 2026-09-10, commit `178022a` — see "PoC Execution Record (factual)" above); the GCP Workflows track was not executed and no comparative evaluation exists. All candidates remain ELIGIBLE by capability model; none has been evaluated for demonstrated fit relative to the others. A proposed decision requires PoC execution results, which are not authorized by this document. *(Updated 2026-09-24: the original text read "No PoC evidence exists", which was true when written.)*
 
 ---
 

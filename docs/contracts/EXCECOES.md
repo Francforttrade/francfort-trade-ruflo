@@ -46,7 +46,7 @@ Para cada material: registrar origem, versão/data de vigência, responsável pe
 
 ## Decisões abertas
 
-Quem controla retries entre aplicação e Temporal; contagem máxima total; erros transitórios; identidade da falha; alçadas e limites de override; resolução/reabertura da fila.
+Quem controla retries entre aplicação e o motor de workflow (não selecionado — ADR-001A: NOT DECIDED); contagem máxima total; erros transitórios; identidade da falha; alçadas e limites de override; resolução/reabertura da fila.
 
 Responsáveis nominais e datas: a definir pelo negócio. Nenhuma decisão foi assumida como aprovada.
 

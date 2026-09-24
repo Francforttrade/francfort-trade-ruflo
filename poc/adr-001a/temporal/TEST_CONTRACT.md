@@ -310,3 +310,56 @@ No test in this contract claims the second kind of recovery has been, or can cur
 **EXECUTION PASS (2026-09-10):** TEST-02 through TEST-10 executed against a real local Temporal Server (`RUNNING_LOCAL_EPHEMERAL`) and real Worker process(es), per explicit user authorization to run tests 2–10 in sequence, stopping and reporting on any failure. TEST-01 was explicitly excluded from this pass. **8 of 9 executed tests PASS outright** (TEST-02, 03, 04, 05, 06, 07, 08, 09); **TEST-10 FAILS on its original scenario** on a structural scenario gap in the existing `waitResumeWorkflow.js`/`waitResumeWorkflowV2.js` pause-point placement (root cause detailed in the TEST-10 row above) — the underlying Temporal `patched()` mechanism itself behaved correctly and per its documented contract; the PoC scenario as originally structured does not exercise the asymmetry the invariant requires. Execution stopped after TEST-10 per instruction to stop and report on failure. At the user's follow-up request, a corrected additive-only TEST-10 scenario (`versionEvolutionWorkflow.js`/`versionEvolutionWorkflowV2.js`) was then built and run, and **PASSES cleanly** — see the TEST-10 row's ADDENDUM for the mechanism-level confirmation (in-flight preserves old behavior with no `MarkerRecorded` event; fresh instance takes new behavior with one). `POC_TESTS_EXECUTED: 9/10` on original scenarios as of that pass (TEST-01 not yet attempted); the version-evolution invariant itself is now demonstrated PASS via the corrected addendum. All runner scripts and captured evidence live under `runner/` (git-untracked, same as the rest of `poc/`).
 
 **TEST-01 EXECUTION (2026-09-10, separate follow-up pass, per explicit user request — TEST-01 only, no other test re-run, no acceptance criteria altered):** executed against the already-running local Temporal Server and already-running Worker (no new server/worker start was necessary — both preconditions were already satisfied from the prior pass). **PASS** — see TEST-01 row above. `POC_TESTS_EXECUTED: 10/10` — every test in this frozen contract has now been executed at least once; TEST-10 carries both its original-scenario FAIL and its corrected-scenario-addendum PASS, both preserved.
+
+---
+
+## ERRATA / FACTUAL ADDENDUM (appended 2026-09-24 — does not modify any text above)
+
+**Scope of this addendum.** Everything above this heading is preserved exactly as committed and remains the historical record. This addendum does not rewrite, retract or reinterpret any assertion above, does not change any test result, and does not change `docs/adr/ADR-001A-durable-workflow-engine.md` STATUS, WINNER or DECISION. It only records facts verifiable from the repository as of commit `2a3aeac`.
+
+### E-1. Pre-execution statements are historical
+
+The following statements are worded as pre-execution statements. They are kept unchanged as history; the per-test `STATUS` lines and the execution records at the end of this document record the execution. This addendum makes no claim about when these statements were written relative to execution (see E-2):
+
+- line 3 — "No test in this document has been executed."
+- `PRECONDITIONS` / `BLOCKER` fields referring to work not yet created or to future authorization: lines 42, 53, 75, 98, 122, 146, 170, 192, 204, 226, 244, 256, 279.
+
+### E-2. Execution record
+
+- Execution date recorded in this document: 2026-09-10 (lines 55, 77, 100, 125, 148, 172, 194, 231–232, 258, 282, 284–285, 310, 312).
+- Commit: `178022a` ("Execute frozen ADR-001A Temporal PoC test contract (TEST-01–10)", 2026-09-10).
+- Version-control note: the repository contains only commit `178022a` for `poc/` (`git log -- poc/`). In that commit, the pre-execution wording listed in E-1 and the recorded execution results coexist in this document. The repository contains no earlier committed version of this document.
+
+### E-3. Recorded result and evidence per test (unchanged; pointers only)
+
+| Test | Recorded STATUS (line) | Evidence files present in `runner/evidence/` | Cited but not present |
+|---|---|---|---|
+| TEST-01 | PASS (55) | `TEST-01.json`, `TEST-01-history.txt`, `TEST-01-describe.txt` | — |
+| TEST-02 | PASS (77) | `TEST-02.json`, `TEST-02-history-complete-true.txt`, `TEST-02-history-complete-false.txt` | — |
+| TEST-03 | PASS (100) | `TEST-03.json`, `TEST-03-history.txt` | — |
+| TEST-04 | PASS (125) | `TEST-04.json`, `TEST-04-history.txt` | `TEST-04-new-worker.log` |
+| TEST-05 | PASS (148) | `TEST-05.json`, `TEST-05-history.txt`, `TEST-05-raw.json` | — |
+| TEST-06 | PASS (172) | `TEST-06.json`, `TEST-06-history.txt` | — |
+| TEST-07 | PASS (194) | `TEST-07.json`, `TEST-07-history.txt` | — |
+| TEST-08 | PASS (232) | `TEST-08.json`, `TEST-08-history.txt` | — |
+| TEST-09 | PASS (258) | `TEST-09.json`, `TEST-09-history.txt` | — |
+| TEST-10 (original scenario) | FAIL (282) | `TEST-10.json`, `TEST-10-history.txt`, `TEST-10-inflight-raw.json`, `TEST-10-fresh-raw.json` | `TEST-10-v2-worker.log` |
+| TEST-10 (corrected addendum) | PASS (285) | `TEST-10b.json`, `TEST-10b-history.txt` | `TEST-10b-v2-worker.log` |
+
+### E-4. Missing `*.log` evidence
+
+The three files in the last column above are cited as evidence (lines 125, 282, 285) but are not versioned and are not available in the repository. `.gitignore` line 4 (`*.log`) excludes them. This addendum makes no claim about their former content.
+
+### E-5. "git-untracked" statement
+
+Line 310 states that runner scripts and captured evidence live under `runner/` "(git-untracked, same as the rest of `poc/`)". Factually, `runner/` and the rest of `poc/` are tracked: they were committed in `178022a`. The `*.log` files in E-4 are the only cited evidence that is not tracked.
+
+### E-6. Identifiers not found
+
+This document cites the following identifiers, which do not appear anywhere else in the current repository, including the contracts they are attributed to:
+
+- `QUA-GAP-001` (lines 156, 158; attributed to `docs/contracts/QUALIDADE.md`)
+- `MSG-GAP-001` (line 180; attributed to `docs/contracts/COMUNICACAO.md`)
+- `FIN-GAP-001` (line 202; attributed to `docs/contracts/FINANCEIRO.md`)
+
+They are recorded here as unresolved references. This addendum does not map them to any other section.
